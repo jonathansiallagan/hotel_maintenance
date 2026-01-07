@@ -21,6 +21,12 @@ Route::middleware('auth')->group(function () {
     // 3. Fitur Lapor
     Route::get('/lapor', [TicketController::class, 'create'])->name('tickets.create');
     Route::post('/lapor', [TicketController::class, 'store'])->name('tickets.store');
+
+    // 4. Fitur Riwayat
+    Route::get('/riwayat', [TicketController::class, 'history'])->name('tickets.history');
+
+    // 5. Fitur Lihat tiket
+    Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
 });
 
 // API scan QR

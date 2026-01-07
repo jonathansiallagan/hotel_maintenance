@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard - HMS</title>
+    <title>Riwayat - HMS</title>
     {{-- Tailwind & FontAwesome --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -23,15 +23,15 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
-<body class="bg-slate-50 font-sans text-slate-800 relative max-w-md mx-auto shadow-2xl min-h-screen flex flex-col">
+<body class="bg-white font-sans text-slate-800 relative max-w-md mx-auto shadow-2xl min-h-screen flex flex-col">
 
     {{-- HEADER SECTION --}}
-    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 pt-10 pb-24 px-6 rounded-b-[2.5rem] shadow-lg relative z-10">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 pt-8 pb-12 px-6 rounded-b-[3rem] shadow-md relative z-10">
         <div class="flex justify-between items-start">
             <div>
                 @php
                 $hour = date('H');
-                $greeting = ($hour < 11) ? "Selamat Pagi" : (($hour < 15) ? "Selamat Siang" : (($hour < 19) ? "Selamat Sore" : "Selamat Malam" ));
+                $greeting = ($hour < 11) ? "Selamat Pagi," : (($hour < 15) ? "Selamat Siang," : (($hour < 19) ? "Selamat Sore," : "Selamat Malam," ));
                     @endphp
 
                     <p class="text-blue-100 text-sm font-medium mb-1">{{ $greeting }},</p>
@@ -51,29 +51,26 @@
                 </button>
             </form>
         </div>
-
-        {{-- Quick Stats --}}
-        <div class="flex gap-4 mt-6">
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 flex-1 border border-white/10">
-                <p class="text-xs text-blue-100">Diproses</p>
-                <p class="text-xl font-bold text-white">{{ $stats['process'] }}</p>
-            </div>
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 flex-1 border border-white/10">
-                <p class="text-xs text-blue-100">Selesai</p>
-                <p class="text-xl font-bold text-white">{{ $stats['done'] }}</p>
-            </div>
-        </div>
     </header>
 
-    {{-- MAIN CONTENT (Report List) --}}
-    <main class="flex-1 px-4 -mt-16 pb-28 overflow-y-auto z-20 scrollbar-hide">
-        <div class="flex justify-between items-center mb-4 px-2">
-            <h2 class="text-lg font-bold text-slate-800">Laporan Saya</h2>
-            <a href="{{ route('tickets.history') }}" class="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">
-                Lihat Semua
-            </a>
-        </div>
+    {{-- 2. TITLE & FILTER BAR (Di area Putih, Sesuai Gambar) --}}
+    <div class="px-6 mt-6 mb-2 flex justify-between items-center">
+        <h2 class="text-slate-800 font-bold text-lg uppercase tracking-wide">RIWAYAT LAPORAN</h2>
 
+        {{-- Dropdown Filter --}}
+        <div class="relative">
+            <select class="appearance-none bg-slate-100 text-slate-700 py-2 pl-4 pr-10 rounded-full text-xs font-bold border-none focus:ring-0 cursor-pointer shadow-sm hover:bg-slate-200 transition-colors">
+                <option>Semua</option>
+                <option>Menunggu</option>
+                <option>Diproses</option>
+                <option>Selesai</option>
+            </select>
+            <i class="fa-solid fa-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+        </div>
+    </div>
+
+    {{-- 3. MAIN CONTENT (List Card Style Dashboard) --}}
+    <main class="flex-1 px-4 py-2 pb-28 overflow-y-auto z-20 scrollbar-hide">
         <div class="space-y-4">
             @forelse($tickets as $ticket)
             <a href="{{ route('tickets.show', $ticket->id) }}" class="block bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow active:scale-[0.98] transition-transform cursor-pointer">
@@ -121,11 +118,9 @@
                 <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i class="fa-regular fa-folder-open text-2xl text-slate-400"></i>
                 </div>
-                <p class="text-sm text-slate-500">Belum ada laporan kerusakan.</p>
+                <p class="text-sm text-slate-500">Belum ada laporan.</p>
             </div>
             @endforelse
-
-            <div class="h-8"></div>
         </div>
     </main>
 
@@ -148,16 +143,16 @@
     {{-- BOTTOM NAVIGATION BAR --}}
     <div class="bg-white border-t border-slate-200 h-20 px-8 pb-2 flex justify-between items-center relative z-30">
 
-        {{-- BERANDA (AKTIF - BIRU) --}}
-        <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center w-16 h-full text-blue-600 cursor-pointer">
-            <i class="fa-solid fa-house text-xl mb-1"></i>
+        {{-- BERANDA (NON AKTIF - ABU) --}}
+        <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center w-16 h-full text-slate-400 hover:text-blue-600 transition group cursor-pointer">
+            <i class="fa-solid fa-house text-xl mb-1 group-hover:-translate-y-0.5 transition-transform"></i>
             <span class="text-[10px] font-medium">Beranda</span>
         </a>
 
-        {{-- RIWAYAT (NON AKTIF - ABU) --}}
-        <a href="{{ route('tickets.history') }}" class="flex flex-col items-center justify-center w-16 h-full text-slate-400 hover:text-blue-600 transition group cursor-pointer">
-            {{-- Gunakan fa-regular agar terlihat seperti outline/tidak aktif --}}
-            <i class="fa-regular fa-file-lines text-xl mb-1 group-hover:-translate-y-0.5 transition-transform"></i>
+        {{-- RIWAYAT (AKTIF - BIRU) --}}
+        <a href="{{ route('tickets.history') }}" class="flex flex-col items-center justify-center w-16 h-full text-blue-600 cursor-pointer">
+            {{-- Gunakan fa-solid karena sedang aktif --}}
+            <i class="fa-solid fa-file-lines text-xl mb-1"></i>
             <span class="text-[10px] font-medium">Riwayat</span>
         </a>
     </div>

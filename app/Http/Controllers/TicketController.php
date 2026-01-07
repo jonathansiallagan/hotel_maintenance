@@ -111,4 +111,36 @@ class TicketController extends Controller
         // Kita arahkan ke dashboard agar user bisa lihat tiketnya muncul di list
         return redirect()->route('dashboard')->with('success', 'Laporan berhasil dikirim! Teknisi akan segera mengecek.');
     }
+
+    /**
+     * Menampilkan Halaman Riwayat
+     */
+    public function history()
+    {
+        $user = Auth::user();
+
+        // Ambil semua tiket milik user, urutkan dari yang terbaru
+        $tickets = Ticket::where('reporter_id', $user->id)
+            ->with('asset')
+            ->latest()
+            ->get();
+
+        return view('tickets.history', compact('tickets'));
+    }
+
+    /**
+     * MENAMPILKAN DETAIL TIKET
+     */
+    public function show(Ticket $ticket)
+    {
+        // 1. Keamanan: Pastikan yang buka adalah Pemilik Tiket (atau Teknisi/Admin nanti)
+        if ($ticket->reporter_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
+
+        // 2. Load relasi yang dibutuhkan
+        $ticket->load(['asset.location', 'reporter']);
+
+        return view('tickets.show', compact('ticket'));
+    }
 }
