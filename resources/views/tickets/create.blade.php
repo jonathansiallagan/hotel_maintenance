@@ -66,18 +66,38 @@
         <form action="{{ route('tickets.store') }}" method="POST" enctype="multipart/form-data" id="reportForm" class="space-y-6">
             @csrf
 
-            {{-- 1. PILIH ASET (Dynamic Dropdown pengganti Card Static sementara) --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Lokasi / Aset <span class="text-red-500">*</span></label>
-                <select name="asset_id" required class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50">
-                    <option value="" disabled selected>-- Pilih Aset --</option>
-                    @foreach($assets as $asset)
-                    <option value="{{ $asset->id }}">
-                        {{ $asset->name }} - {{ $asset->location->name ?? 'Unknown' }}
-                    </option>
-                    @endforeach
-                </select>
-                @error('asset_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            {{-- 1. TAMPILAN KARTU HASIL SCAN --}}
+            <input type="hidden" name="asset_id" value="{{ $scannedAsset->id }}">
+
+            <div class="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-4 animate-fade-in-up">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Aset Terverifikasi
+                    </h2>
+                    <a href="{{ route('tickets.create') }}" class="text-[10px] text-gray-500 underline">Ganti Aset</a>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    {{-- Icon/Gambar Aset --}}
+                    <div class="w-16 h-16 bg-white rounded-lg border border-blue-100 flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-tv text-2xl text-blue-400"></i>
+                    </div>
+
+                    {{-- Informasi Detail --}}
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg leading-tight">{{ $scannedAsset->name }}</h3>
+                        <div class="mt-1 space-y-1">
+                            <p class="text-sm text-gray-600 flex items-center gap-2">
+                                <i class="fa-solid fa-location-dot text-gray-400 w-4"></i>
+                                {{ $scannedAsset->location->name ?? 'Lokasi tidak set' }}
+                            </p>
+                            <p class="text-xs text-gray-500 flex items-center gap-2 font-mono">
+                                <i class="fa-solid fa-barcode text-gray-400 w-4"></i>
+                                {{ $scannedAsset->serial_number ?? 'No S/N' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- 2. JUDUL (Kategori Masalah sebagai Judul) --}}

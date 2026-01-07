@@ -38,12 +38,18 @@ class TicketController extends Controller
     /**
      * Menampilkan Form Lapor Kerusakan
      */
-    public function create()
+    public function create(Request $request)
     {
-        // Ambil data aset untuk Dropdown (Hanya yang statusnya active)
+        // Ambil semua aset untuk dropdown (backup jika scan gagal)
         $assets = Asset::with('location')->where('status', 'active')->get();
 
-        return view('tickets.create', compact('assets'));
+        // Jika ada parameter 'asset_id' dari hasil scan
+        $scannedAsset = null;
+        if ($request->has('asset_id')) {
+            $scannedAsset = Asset::with('location')->find($request->asset_id);
+        }
+
+        return view('tickets.create', compact('assets', 'scannedAsset'));
     }
 
     /**
@@ -67,20 +73,41 @@ class TicketController extends Controller
             $photoPath = $request->file('photo_evidence_before')->store('evidence', 'public');
         }
 
-        // C. Simpan ke Database
+        // C. GENERATE NOMOR TIKET (MANUAL DI CONTROLLER)
+        // Format: TIK-TAHUNBULAN-URUTAN (Contoh: TIK-202601-0001)
+        $prefix = 'TIK-' . date('Ym') . '-';
+
+        // Cari tiket terakhir bulan ini
+        $lastTicket = Ticket::where('ticket_number', 'like', $prefix . '%')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        // Hitung nomor urut
+        if ($lastTicket) {
+            $lastNumber = intval(substr($lastTicket->ticket_number, -4));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        // Gabungkan jadi string (Misal: TIK-202601-0001)
+        $generatedTicketNumber = $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+
+        // D. Simpan ke Database
         // Catatan: ticket_number otomatis dibuat oleh Model Ticket (boot method)
         Ticket::create([
+            'ticket_number' => $generatedTicketNumber,
             'reporter_id' => Auth::id(),
             'asset_id' => $request->asset_id,
             'title' => $request->title,
             'description' => $request->description,
             'priority' => $request->priority,
             'photo_evidence_before' => $photoPath,
-            'status' => 'open', // Status awal selalu open
+            'status' => 'open',
             'reported_at' => now(),
         ]);
 
-        // D. Redirect kembali ke Dashboard dengan Pesan Sukses
+        // E. Redirect kembali ke Dashboard dengan Pesan Sukses
         // Kita arahkan ke dashboard agar user bisa lihat tiketnya muncul di list
         return redirect()->route('dashboard')->with('success', 'Laporan berhasil dikirim! Teknisi akan segera mengecek.');
     }
