@@ -27,17 +27,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-
-        Schema::create('spareparts', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('sku_code')->unique();
-            $table->integer('stock')->default(0);
-            $table->integer('minimum_stock_alert')->default(5);
-            $table->string('unit');
-            $table->decimal('price_per_unit', 15, 2);
-            $table->timestamps();
-        });
     }
 
     /**

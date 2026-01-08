@@ -9,10 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
-        Schema::create('tikets', function (Blueprint $table) {
+        Schema::create('ticket_sparepart', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
+            $table->foreignId('sparepart_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tikets');
+        Schema::dropIfExists('ticket_sparepart');
     }
 };

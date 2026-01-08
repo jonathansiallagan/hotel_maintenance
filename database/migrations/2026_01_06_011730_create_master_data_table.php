@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('locations', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Lobby, Kamar 101
+            $table->string('name');
             $table->string('floor')->nullable();
             $table->string('building_block')->nullable();
             $table->timestamps();
@@ -21,9 +21,9 @@ return new class extends Migration
 
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // AC, Plumbing
+            $table->string('name');
             $table->string('code')->unique();
-            $table->string('department_handler'); // ENGINEERING / IT
+            $table->string('department_handler');
             $table->timestamps();
         });
     }

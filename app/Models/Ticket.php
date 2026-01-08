@@ -49,7 +49,7 @@ class Ticket extends Model
     public function spareparts()
     {
         return $this->belongsToMany(Sparepart::class, 'ticket_sparepart')
-            ->withPivot('quantity', 'cost_at_time') // Ambil data di tabel pivot
+            ->withPivot('quantity')
             ->withTimestamps();
     }
 }

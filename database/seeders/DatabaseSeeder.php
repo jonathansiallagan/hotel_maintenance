@@ -18,15 +18,15 @@ class DatabaseSeeder extends Seeder
     {
         // 1. Buat Users (Admin, Teknisi, Staff)
         $admin = User::create([
-            'name' => 'Chief Engineer',
+            'name' => 'Denchuu',
             'email' => 'admin@hotel.com',
-            'password' => Hash::make('password'), // Password untuk login
+            'password' => Hash::make('password'),
             'role' => User::ROLE_ADMIN,
             'department' => 'engineering',
         ]);
 
         $tech = User::create([
-            'name' => 'Budi Teknisi',
+            'name' => 'Den',
             'email' => 'tech@hotel.com',
             'password' => Hash::make('password'),
             'role' => User::ROLE_TEKNISI,
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $staff = User::create([
-            'name' => 'Siti Resepsionis',
+            'name' => 'Chuu',
             'email' => 'staff@hotel.com',
             'password' => Hash::make('password'),
             'role' => User::ROLE_USER,
@@ -101,5 +101,7 @@ class DatabaseSeeder extends Seeder
             'reported_at' => now()->subHours(2),
             'responded_at' => now()->subHour(),
         ]);
+
+        $this->call(MasterDataSeeder::class);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // Tambahkan ini
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -36,9 +37,7 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
+        // Attempt to reset the user's password.
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user) use ($request) {
@@ -48,15 +47,29 @@ class NewPasswordController extends Controller
                 ])->save();
 
                 event(new PasswordReset($user));
+
+                // FITUR TAMBAHAN: Auto Login setelah reset password
+                Auth::login($user);
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        return $status == Password::PASSWORD_RESET
-                    ? redirect()->route('login')->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+        // Jika Reset Berhasil
+        if ($status == Password::PASSWORD_RESET) {
+
+            // Cek Role user yang sedang login untuk menentukan arah redirect
+            $role = Auth::user()->role;
+
+            $route = match ($role) {
+                'technician' => 'technician.dashboard',
+                'admin'      => 'admin.dashboard',
+                default      => 'staff.dashboard',
+            };
+
+            return redirect()->route($route)->with('status', __($status));
+        }
+
+        // Jika Gagal
+        return back()->withInput($request->only('email'))
+            ->withErrors(['email' => __($status)]);
     }
 }

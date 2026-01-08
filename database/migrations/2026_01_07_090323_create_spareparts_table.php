@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('ticket_activities', function (Blueprint $table) {
+        Schema::create('spareparts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained();
-            $table->string('action'); // e.g., 'status_change'
-            $table->text('details')->nullable();
+            $table->string('name');
+            $table->string('sku_code')->nullable();
+            $table->integer('stock')->default(0);
+            $table->string('unit')->default('pcs');
+            $table->decimal('price_per_unit', 15, 2)->default(0);
             $table->timestamps();
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ticket_details_tables');
+        Schema::dropIfExists('spareparts');
     }
 };

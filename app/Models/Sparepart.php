@@ -15,7 +15,7 @@ class Sparepart extends Model
     public function tickets()
     {
         return $this->belongsToMany(Ticket::class, 'ticket_sparepart')
-            ->withPivot('quantity', 'cost_at_time')
+            ->withPivot('quantity')
             ->withTimestamps();
     }
 }

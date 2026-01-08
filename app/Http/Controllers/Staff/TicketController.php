@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Staff;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Ticket;
 use App\Models\Asset;
@@ -32,7 +33,7 @@ class TicketController extends Controller
         ];
 
         // 3. Kirim data ke View 'dashboard.blade.php'
-        return view('dashboard', compact('tickets', 'user', 'stats'));
+        return view('staff.dashboard', compact('tickets', 'user', 'stats'));
     }
 
     /**
@@ -49,7 +50,7 @@ class TicketController extends Controller
             $scannedAsset = Asset::with('location')->find($request->asset_id);
         }
 
-        return view('tickets.create', compact('assets', 'scannedAsset'));
+        return view('staff.tickets.create', compact('assets', 'scannedAsset'));
     }
 
     /**
@@ -125,7 +126,7 @@ class TicketController extends Controller
             ->latest()
             ->get();
 
-        return view('tickets.history', compact('tickets'));
+        return view('staff.tickets.history', compact('tickets'));
     }
 
     /**
@@ -141,6 +142,6 @@ class TicketController extends Controller
         // 2. Load relasi yang dibutuhkan
         $ticket->load(['asset.location', 'reporter']);
 
-        return view('tickets.show', compact('ticket'));
+        return view('staff.tickets.show', compact('ticket'));
     }
 }
