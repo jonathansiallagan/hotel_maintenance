@@ -74,6 +74,21 @@
         {{-- FORM CONTENT --}}
         <div class="p-4 space-y-6 flex-1 overflow-y-auto">
 
+            {{-- Tampilkan Alert Jika Ada Error --}}
+            @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl animate-fade-in-up">
+                <div class="flex items-center gap-2 font-bold mb-1 text-sm">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Gagal Mengirim Laporan</span>
+                </div>
+                <ul class="list-disc pl-8 text-xs">
+                    @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             <form action="{{ route('staff.tickets.store') }}" method="POST" enctype="multipart/form-data" id="reportForm" class="space-y-6">
                 @csrf
 
@@ -118,18 +133,22 @@
                 </div>
 
                 {{-- PILIH JUDUL MASALAH --}}
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Masalah <span class="text-red-500">*</span></label>
-                    <div class="flex flex-wrap gap-2">
-                        @php $issues = ['AC Bocor', 'Tidak Dingin', 'Berisik', 'Mati Total', 'Lampu Mati', 'Air Mampet', 'Lainnya']; @endphp
-                        @foreach($issues as $issue)
-                        <input type="radio" name="title" id="cat_{{ Str::slug($issue) }}" value="{{ $issue }}" class="category-radio hidden" required>
-                        <label for="cat_{{ Str::slug($issue) }}" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
-                            {{ $issue }}
-                        </label>
-                        @endforeach
-                    </div>
-                    @error('title') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                <div class="flex flex-wrap gap-2">
+                    {{-- Loop data dari Controller --}}
+                    @foreach($commonIssues as $issue)
+                    <input type="radio" name="title" id="cat_{{ Str::slug($issue) }}" value="{{ $issue }}"
+                        class="category-radio hidden"
+                        {{ old('title') == $issue ? 'checked' : '' }} required>
+                    <label for="cat_{{ Str::slug($issue) }}" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
+                        {{ $issue }}
+                    </label>
+                    @endforeach
+
+                    {{-- Opsi manual --}}
+                    <input type="radio" name="title" id="cat_manual" value="Lainnya" class="category-radio hidden">
+                    <label for="cat_manual" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
+                        Lainnya
+                    </label>
                 </div>
 
                 {{-- PILIH PRIORITAS --}}

@@ -87,20 +87,21 @@ class DatabaseSeeder extends Seeder
             'price_per_unit' => 50000
         ]);
 
-        // 5. Create Dummy Ticket (Contoh Kasus: AC Lobby Rusak)
-        Ticket::create([
-            'ticket_number' => 'TIK-' . date('Ymd') . '-001',
-            'reporter_id' => $staff->id, // Siti lapor
-            'technician_id' => $tech->id, // Budi ditugaskan
-            'asset_id' => $acLobby->id, // AC Lobby rusak
-            'title' => 'AC Lobby Panas',
-            'description' => 'Suhu AC tidak dingin, hanya keluar angin biasa. Tamu complain.',
-            'photo_evidence_before' => 'path/to/dummy_image.jpg',
-            'priority' => 'high',
-            'status' => 'in_progress',
-            'reported_at' => now()->subHours(2),
-            'responded_at' => now()->subHour(),
-        ]);
+        // // 5. Create Dummy Ticket (Contoh Kasus: AC Lobby Rusak)
+        // Ticket::create([
+        //     'ticket_number' => 'TIK-' . date('Ymd') . '-001',
+        //     'user_id' => 1,
+        //     'reporter_id' => $staff->id,
+        //     'technician_id' => $tech->id,
+        //     'asset_id' => $acLobby->id,
+        //     'title' => 'AC Lobby Panas',
+        //     'description' => 'Suhu AC tidak dingin, hanya keluar angin biasa. Tamu complain.',
+        //     'photo_evidence_before' => 'path/to/dummy_image.jpg',
+        //     'priority' => 'high',
+        //     'status' => 'in_progress',
+        //     'reported_at' => now()->subHours(2),
+        //     'responded_at' => now()->subHour(),
+        // ]);
 
         $this->call(MasterDataSeeder::class);
     }

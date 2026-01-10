@@ -14,23 +14,18 @@
                 <p class="text-[10px] text-slate-500 font-mono mt-0.5">{{ $ticket->ticket_number }}</p>
             </div>
 
-            {{-- Status Badge di Kanan Atas --}}
+            {{-- UPDATE: Status Badge Dinamis --}}
             @php
-            $statusColor = match($ticket->status) {
-            'open' => 'bg-orange-100 text-orange-700 border border-orange-200',
-            'in_progress' => 'bg-blue-100 text-blue-700 border border-blue-200',
-            'resolved' => 'bg-green-100 text-green-700 border border-green-200',
-            default => 'bg-gray-100 text-gray-600'
-            };
-            $statusLabel = match($ticket->status) {
-            'open' => 'Menunggu',
-            'in_progress' => 'Diproses',
-            'resolved' => 'Selesai',
-            default => ucfirst($ticket->status)
+            $statusConfig = match($ticket->status) {
+            'open' => ['class' => 'bg-gray-100 text-gray-600 border-gray-200', 'label' => 'Menunggu'],
+            'in_progress' => ['class' => 'bg-blue-100 text-blue-700 border-blue-200', 'label' => 'Dikerjakan'],
+            'pending_sparepart' => ['class' => 'bg-amber-100 text-amber-700 border-amber-200', 'label' => 'Pending Alat'],
+            'resolved' => ['class' => 'bg-green-100 text-green-700 border-green-200', 'label' => 'Selesai'],
+            default => ['class' => 'bg-gray-100', 'label' => $ticket->status]
             };
             @endphp
-            <div class="{{ $statusColor }} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                {{ $statusLabel }}
+            <div class="{{ $statusConfig['class'] }} border px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                {{ $statusConfig['label'] }}
             </div>
         </div>
 
@@ -44,11 +39,6 @@
                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 cursor-pointer"
                     onclick="window.open(this.src, '_blank')"
                     alt="Bukti Kerusakan">
-
-                {{-- Label Overlay --}}
-                <div class="absolute bottom-3 left-3 bg-black/60 text-white px-3 py-1 rounded-md text-xs font-medium backdrop-blur-sm pointer-events-none">
-                    <i class="fa-solid fa-camera mr-1"></i> Foto Kerusakan
-                </div>
                 @else
                 <div class="flex flex-col items-center justify-center h-full text-slate-400">
                     <i class="fa-regular fa-image text-4xl mb-2"></i>
@@ -80,20 +70,17 @@
                             <p class="text-xs text-slate-500 pl-5 truncate">{{ $ticket->asset->name }}</p>
                         </div>
 
-                        {{-- Prioritas --}}
+                        {{-- UPDATE: Menampilkan Nama Teknisi --}}
                         <div>
-                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Prioritas</p>
-                            @if($ticket->priority == 'high')
-                            <p class="text-sm font-bold text-red-600 flex items-center gap-2 bg-red-50 px-2 py-1 rounded w-max">
-                                <i class="fa-solid fa-fire"></i> Urgent
-                            </p>
-                            @elseif($ticket->priority == 'medium')
-                            <p class="text-sm font-bold text-blue-600 flex items-center gap-2 bg-blue-50 px-2 py-1 rounded w-max">
-                                <i class="fa-solid fa-square text-xs"></i> Normal
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Teknisi</p>
+                            @if($ticket->technician)
+                            <p class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-user-gear text-blue-600"></i>
+                                {{ Str::limit($ticket->technician->name, 15) }}
                             </p>
                             @else
-                            <p class="text-sm font-bold text-green-600 flex items-center gap-2 bg-green-50 px-2 py-1 rounded w-max">
-                                <i class="fa-solid fa-arrow-down"></i> Low
+                            <p class="text-sm text-slate-400 italic flex items-center gap-2">
+                                <i class="fa-solid fa-user-clock"></i> Belum ada
                             </p>
                             @endif
                         </div>
@@ -109,7 +96,7 @@
                 </div>
             </div>
 
-            {{-- TIMELINE PROGRES --}}
+            {{-- TIMELINE PROGRES (LOGIC DIPERBARUI) --}}
             <div class="px-5 mt-6 mb-8">
                 <h3 class="text-sm font-bold text-slate-800 mb-4 ml-1">Riwayat Status</h3>
 
@@ -123,14 +110,31 @@
                             <p class="text-[10px] text-slate-400">{{ $ticket->created_at->format('d M Y, H:i') }}</p>
                         </div>
 
-                        {{-- Step 2: Diproses --}}
-                        @if($ticket->status == 'in_progress' || $ticket->status == 'resolved')
-                        <div class="relative">
+                        {{-- Step 2: Logic Diproses / Pending / Active --}}
+                        @if($ticket->status != 'open')
+                        <div class="relative animate-fade-in-up">
+                            @if($ticket->status == 'pending_sparepart')
+                            {{-- Tampilan PENDING --}}
+                            <div class="absolute -left-[21px] bg-amber-500 h-3 w-3 rounded-full border-2 border-white shadow-sm ring-2 ring-amber-100"></div>
+                            <p class="text-xs font-bold text-amber-600">Pending Sparepart</p>
+                            <p class="text-[10px] text-slate-500 mt-1">
+                                Teknisi <span class="font-bold">{{ $ticket->technician->name ?? '...' }}</span> sedang menunggu material.
+                            </p>
+                            @if($ticket->technician_note)
+                            <p class="text-[10px] bg-amber-50 p-2 rounded mt-1 border border-amber-100 italic">"{{ $ticket->technician_note }}"</p>
+                            @endif
+                            @else
+                            {{-- Tampilan IN PROGRESS / DONE --}}
                             <div class="absolute -left-[21px] bg-blue-500 h-3 w-3 rounded-full border-2 border-white shadow-sm ring-2 ring-blue-100"></div>
-                            <p class="text-xs font-bold text-slate-700">Sedang Dikerjakan Teknisi</p>
-                            <p class="text-[10px] text-slate-400">Teknisi sedang melakukan perbaikan.</p>
+                            <p class="text-xs font-bold text-slate-700">Sedang Dikerjakan</p>
+                            <p class="text-[10px] text-slate-400">
+                                Ditangani oleh:
+                                <span class="font-bold text-blue-600">{{ $ticket->technician->name ?? 'Teknisi' }}</span>
+                            </p>
+                            @endif
                         </div>
                         @else
+                        {{-- Tampilan MASIH MENUNGGU (Belum diambil) --}}
                         <div class="relative opacity-40 grayscale">
                             <div class="absolute -left-[21px] bg-slate-300 h-3 w-3 rounded-full border-2 border-white"></div>
                             <p class="text-xs font-medium text-slate-500">Menunggu Teknisi</p>
@@ -139,10 +143,28 @@
 
                         {{-- Step 3: Selesai --}}
                         @if($ticket->status == 'resolved')
-                        <div class="relative">
+                        <div class="relative animate-fade-in-up">
                             <div class="absolute -left-[21px] bg-green-500 h-3 w-3 rounded-full border-2 border-white shadow-sm ring-2 ring-green-100"></div>
                             <p class="text-xs font-bold text-slate-700">Perbaikan Selesai</p>
-                            <p class="text-[10px] text-slate-400">Masalah telah teratasi.</p>
+                            <p class="text-[10px] text-slate-400">
+                                {{ $ticket->completed_at ? \Carbon\Carbon::parse($ticket->completed_at)->format('d M, H:i') : '-' }}
+                            </p>
+
+                            {{-- Menampilkan Catatan Penyelesaian --}}
+                            @if($ticket->technician_note)
+                            <div class="mt-2 text-[10px] text-slate-600 bg-green-50 border border-green-100 p-2 rounded">
+                                <span class="font-bold">Catatan Teknisi:</span><br>
+                                {{ $ticket->technician_note }}
+                            </div>
+                            @endif
+
+                            {{-- Tombol Lihat Foto Hasil (Optional) --}}
+                            @if($ticket->photo_evidence_after)
+                            <button onclick="window.open('{{ asset('storage/'.$ticket->photo_evidence_after) }}', '_blank')"
+                                class="mt-2 text-[10px] flex items-center gap-1 text-green-600 hover:underline">
+                                <i class="fa-solid fa-image"></i> Lihat Bukti Selesai
+                            </button>
+                            @endif
                         </div>
                         @else
                         <div class="relative opacity-40 grayscale">

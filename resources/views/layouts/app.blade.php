@@ -1,3 +1,5 @@
+@props(['hideNav' => false])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -15,15 +17,15 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- Slot untuk CSS tambahan per halaman (misal: style scanner) --}}
+    {{-- Slot untuk CSS tambahan --}}
     @stack('styles')
 </head>
 
 <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
 
-        {{-- LOGIC: Sembunyikan Navigasi Bawaan jika diminta --}}
-        @if (!isset($hideNav) || $hideNav === false)
+        {{-- LOGIC: Karena sudah didefinisikan di @props, kita bisa langsung cek boolean-nya --}}
+        @if (!$hideNav)
         @include('layouts.navigation')
         @endif
 
@@ -40,7 +42,7 @@
         </main>
     </div>
 
-    {{-- Slot untuk Javascript tambahan per halaman (misal: logic scanner) --}}
+    {{-- Slot untuk Javascript tambahan --}}
     @stack('scripts')
 </body>
 

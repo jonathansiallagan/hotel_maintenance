@@ -8,6 +8,7 @@ use App\Models\Ticket;
 use App\Models\Asset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TicketController extends Controller
 {
@@ -17,23 +18,21 @@ class TicketController extends Controller
      */
     public function index()
     {
-        $user = Auth::user();
-
-        // 1. Ambil Tiket milik user yang sedang login
-        // Kita gunakan 'with' agar data aset & lokasi ikut terbawa (Eager Loading)
-        $tickets = Ticket::where('reporter_id', $user->id)
-            ->with(['asset.location'])
-            ->latest() // Urutkan dari yang paling baru
+        $tickets = \App\Models\Ticket::where('user_id', Auth::id())
+            ->whereIn('status', ['open', 'in_progress', 'pending_sparepart'])
+            ->latest()
             ->get();
 
-        // 2. Hitung Statistik Sederhana untuk Header Dashboard
+        // Hitung stats (opsional)
         $stats = [
-            'process' => $tickets->whereIn('status', ['open', 'in_progress', 'pending_sparepart'])->count(),
-            'done' => $tickets->whereIn('status', ['resolved', 'closed'])->count(),
+            'process' => \App\Models\Ticket::where('user_id', Auth::id())->where('status', 'in_progress')->count(),
+            'done'    => \App\Models\Ticket::where('user_id', Auth::id())->where('status', 'resolved')->count(),
         ];
 
-        // 3. Kirim data ke View 'dashboard.blade.php'
-        return view('staff.dashboard', compact('tickets', 'user', 'stats'));
+        // Jika scan aset (scan logic)
+        $scannedAsset = null; // Default kosong
+
+        return view('staff.dashboard', compact('tickets', 'stats', 'scannedAsset'));
     }
 
     /**
@@ -41,16 +40,25 @@ class TicketController extends Controller
      */
     public function create(Request $request)
     {
-        // Ambil semua aset untuk dropdown (backup jika scan gagal)
-        $assets = Asset::with('location')->where('status', 'active')->get();
+        $assetId = $request->query('asset_id');
 
-        // Jika ada parameter 'asset_id' dari hasil scan
-        $scannedAsset = null;
-        if ($request->has('asset_id')) {
-            $scannedAsset = Asset::with('location')->find($request->asset_id);
+        $scannedAsset = \App\Models\Asset::with('category')->find($assetId);
+
+        $commonIssues = ['Lainnya'];
+
+        if ($scannedAsset && $scannedAsset->category) {
+            $code = $scannedAsset->category->code;
+
+            $commonIssues = match ($code) {
+                'CAT-HVAC' => ['AC Bocor', 'Tidak Dingin', 'Berisik', 'Mati Total'],
+                'CAT-ELC'  => ['Layar Gelap', 'Tidak Ada Sinyal', 'Mati Total', 'Kabel Putus'],
+                'CAT-PLB'  => ['Air Mampet', 'Kran Bocor', 'Air Keruh', 'Bau Saluran'],
+                'CAT-FUR'  => ['Patah', 'Engsel Lepas', 'Robek'],
+                default    => ['Rusak Fisik', 'Tidak Berfungsi', 'Lainnya']
+            };
         }
 
-        return view('staff.tickets.create', compact('assets', 'scannedAsset'));
+        return view('staff.tickets.create', compact('scannedAsset', 'commonIssues'));
     }
 
     /**
@@ -60,25 +68,29 @@ class TicketController extends Controller
     {
         // A. Validasi Input (Security Check)
         $request->validate([
-            'asset_id' => 'required|exists:assets,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high',
-            'photo_evidence_before' => 'required|image|mimes:jpeg,png,jpg|max:10240', // Max 10MB
+            'asset_id'              => 'required|exists:assets,id',
+            'title'                 => 'required|string|max:255',
+            'priority'              => 'required|in:low,medium,high',
+            'description'           => 'nullable|string',
+            'photo_evidence_before' => 'required|image|mimes:jpeg,png,jpg|max:10240',
+        ], [
+            'asset_id.required' => 'Aset tidak valid.',
+            'title.required' => 'Masalah harus dipilih.',
+            'photo_evidence_before.required' => 'Bukti foto wajib diupload.',
+            'photo_evidence_before.image' => 'File harus berupa gambar.',
+            'photo_evidence_before.max' => 'Ukuran foto maksimal 10MB.',
         ]);
 
         // B. Proses Upload Foto
         $photoPath = null;
         if ($request->hasFile('photo_evidence_before')) {
-            // Simpan file di folder: storage/app/public/evidence
             $photoPath = $request->file('photo_evidence_before')->store('evidence', 'public');
         }
 
-        // C. GENERATE NOMOR TIKET (MANUAL DI CONTROLLER)
-        // Format: TIK-TAHUNBULAN-URUTAN (Contoh: TIK-202601-0001)
+        // C. GENERATE NOMOR TIKET (Format: TIK-TAHUNBULAN-URUTAN)
         $prefix = 'TIK-' . date('Ym') . '-';
 
-        // Cari tiket terakhir bulan ini
+        // Cari tiket terakhir yang memiliki prefix bulan ini
         $lastTicket = Ticket::where('ticket_number', 'like', $prefix . '%')
             ->orderBy('id', 'desc')
             ->first();
@@ -91,26 +103,24 @@ class TicketController extends Controller
             $newNumber = 1;
         }
 
-        // Gabungkan jadi string (Misal: TIK-202601-0001)
+        // Gabungkan prefix dengan nomor urut (dipadding 0 di depan, misal: 0001)
         $generatedTicketNumber = $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
 
         // D. Simpan ke Database
-        // Catatan: ticket_number otomatis dibuat oleh Model Ticket (boot method)
         Ticket::create([
-            'ticket_number' => $generatedTicketNumber,
-            'reporter_id' => Auth::id(),
-            'asset_id' => $request->asset_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'priority' => $request->priority,
+            'ticket_number'         => $generatedTicketNumber,
+            'user_id'               => Auth::id(),
+            'asset_id'              => $request->asset_id,
+            'title'                 => $request->title,
+            'description'           => $request->description ?? '-',
+            'priority'              => $request->priority,
             'photo_evidence_before' => $photoPath,
-            'status' => 'open',
-            'reported_at' => now(),
+            'status'                => 'open',
         ]);
 
         // E. Redirect kembali ke Dashboard dengan Pesan Sukses
-        // Kita arahkan ke dashboard agar user bisa lihat tiketnya muncul di list
-        return redirect()->route('dashboard')->with('success', 'Laporan berhasil dikirim! Teknisi akan segera mengecek.');
+        return redirect()->route('staff.dashboard')
+            ->with('success', 'Laporan berhasil dikirim! Nomor Tiket: ' . $generatedTicketNumber);
     }
 
     /**
@@ -121,7 +131,7 @@ class TicketController extends Controller
         $user = Auth::user();
 
         // Ambil semua tiket milik user, urutkan dari yang terbaru
-        $tickets = Ticket::where('reporter_id', $user->id)
+        $tickets = Ticket::where('user_id', $user->id)
             ->with('asset')
             ->latest()
             ->get();
@@ -135,12 +145,12 @@ class TicketController extends Controller
     public function show(Ticket $ticket)
     {
         // 1. Keamanan: Pastikan yang buka adalah Pemilik Tiket (atau Teknisi/Admin nanti)
-        if ($ticket->reporter_id !== Auth::id()) {
+        if ($ticket->user_id !== Auth::id()) {
             abort(403, 'Anda tidak memiliki akses ke tiket ini.');
         }
 
         // 2. Load relasi yang dibutuhkan
-        $ticket->load(['asset.location', 'reporter']);
+        $ticket->load(['asset.location', 'reporter', 'technician']);  
 
         return view('staff.tickets.show', compact('ticket'));
     }

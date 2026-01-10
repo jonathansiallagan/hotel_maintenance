@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('technician_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('asset_id')->constrained('assets')->onDelete('cascade');
             $table->string('ticket_number')->unique();
-            $table->foreignId('reporter_id')->constrained('users');
-            $table->foreignId('technician_id')->nullable()->constrained('users');
-            $table->foreignId('asset_id')->constrained('assets');
             $table->string('title');
             $table->text('description');
             $table->string('photo_evidence_before');

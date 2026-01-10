@@ -30,10 +30,9 @@ class Ticket extends Model
     // Relasi: Siapa pelapornya?
     public function reporter()
     {
-        return $this->belongsTo(User::class, 'reporter_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Relasi: Siapa teknisinya?
     public function technician()
     {
         return $this->belongsTo(User::class, 'technician_id');
