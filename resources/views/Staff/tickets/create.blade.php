@@ -92,25 +92,30 @@
             <form action="{{ route('staff.tickets.store') }}" method="POST" enctype="multipart/form-data" id="reportForm" class="space-y-6">
                 @csrf
 
-                {{-- ASET TERVERIFIKASI --}}
+                {{-- ========================================== --}}
+                {{-- BAGIAN LOGIKA ASET (SCAN VS MANUAL)        --}}
+                {{-- ========================================== --}}
+
+                @if(isset($scannedAsset) && $scannedAsset)
+                {{-- KONDISI 1: HASIL SCAN QR (TAMPILKAN KARTU) --}}
                 <input type="hidden" name="asset_id" value="{{ $scannedAsset->id }}">
+
                 <div class="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-4 animate-fade-in-up">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-xs font-bold text-blue-600 uppercase tracking-wider">
                             <i class="fa-solid fa-circle-check mr-1"></i> Aset Terverifikasi
                         </h2>
-                        {{-- Tombol Ganti Aset (Reset Scan) --}}
-                        <a href="{{ route('staff.dashboard') }}" class="text-[10px] text-gray-500 underline hover:text-blue-600">Scan Ulang</a>
+                        <a href="{{ route('staff.tickets.create') }}" class="text-[10px] text-gray-500 underline hover:text-blue-600">Ganti Mode Manual</a>
                     </div>
 
                     <div class="flex gap-4 items-start">
                         <div class="w-14 h-14 bg-white rounded-lg border border-blue-100 flex items-center justify-center shadow-sm text-blue-500">
-                            {{-- Icon Dinamis Berdasarkan Kategori --}}
                             @php
                             $icon = match($scannedAsset->category->code ?? '') {
                             'CAT-ELC' => 'fa-tv',
                             'CAT-HVAC' => 'fa-fan',
                             'CAT-PLB' => 'fa-faucet',
+                            'CAT-FUR' => 'fa-chair',
                             default => 'fa-box'
                             };
                             @endphp
@@ -132,24 +137,55 @@
                     </div>
                 </div>
 
-                {{-- PILIH JUDUL MASALAH --}}
-                <div class="flex flex-wrap gap-2">
-                    {{-- Loop data dari Controller --}}
-                    @foreach($commonIssues as $issue)
-                    <input type="radio" name="title" id="cat_{{ Str::slug($issue) }}" value="{{ $issue }}"
-                        class="category-radio hidden"
-                        {{ old('title') == $issue ? 'checked' : '' }} required>
-                    <label for="cat_{{ Str::slug($issue) }}" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
-                        {{ $issue }}
-                    </label>
-                    @endforeach
-
-                    {{-- Opsi manual --}}
-                    <input type="radio" name="title" id="cat_manual" value="Lainnya" class="category-radio hidden">
-                    <label for="cat_manual" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
-                        Lainnya
-                    </label>
+                @else
+                {{-- KONDISI 2: MANUAL SELECT (TAMPILKAN DROPDOWN) --}}
+                <div class="animate-fade-in-up">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Aset <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <select name="asset_id" class="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm appearance-none bg-white shadow-sm" required>
+                            <option value="" disabled selected>-- Cari Aset --</option>
+                            @foreach($allAssets as $asset)
+                            <option value="{{ $asset->id }}" {{ old('asset_id') == $asset->id ? 'selected' : '' }}>
+                                {{ $asset->name }} ({{ $asset->location->name ?? '-' }})
+                            </option>
+                            @endforeach
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-2">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Gunakan tombol Scan QR di Dashboard untuk otomatisasi.
+                    </p>
                 </div>
+                @endif
+
+
+                {{-- PILIH JUDUL MASALAH (Hanya muncul jika commonIssues tersedia) --}}
+                @if(isset($commonIssues) && count($commonIssues) > 0)
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Kategori Masalah</label>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($commonIssues as $issue)
+                        <input type="radio" name="title" id="cat_{{ Str::slug($issue) }}" value="{{ $issue }}"
+                            class="category-radio hidden"
+                            {{ old('title') == $issue ? 'checked' : '' }}>
+                        <label for="cat_{{ Str::slug($issue) }}" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
+                            {{ $issue }}
+                        </label>
+                        @endforeach
+
+                        <input type="radio" name="title" id="cat_manual" value="Lainnya" class="category-radio hidden">
+                        <label for="cat_manual" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
+                            Lainnya
+                        </label>
+                    </div>
+                </div>
+                @else
+                {{-- Jika Manual Mode, default title 'Lainnya' atau input manual --}}
+                <input type="hidden" name="title" value="Lainnya">
+                @endif
 
                 {{-- PILIH PRIORITAS --}}
                 <div>
@@ -190,10 +226,8 @@
                     <label class="block text-sm font-bold text-gray-700 mb-2">Bukti Foto <span class="text-red-500">*</span></label>
 
                     <div class="relative group">
-                        {{-- Input File --}}
                         <input type="file" name="photo_evidence_before" id="photoInput" accept="image/*" capture="environment" class="hidden" onchange="previewImage(event)">
 
-                        {{-- Placeholder --}}
                         <div id="uploadPlaceholder" class="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-100 transition-colors" onclick="document.getElementById('photoInput').click()">
                             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 text-blue-600">
                                 <i class="fa-solid fa-camera text-xl"></i>
@@ -202,7 +236,6 @@
                             <p class="text-[10px] text-gray-500 mt-1">Ketuk untuk membuka kamera</p>
                         </div>
 
-                        {{-- Preview --}}
                         <div id="imagePreviewContainer" class="hidden relative rounded-xl overflow-hidden shadow-md border border-gray-200">
                             <img id="imagePreview" src="" alt="Preview" class="w-full h-48 object-cover">
                             <button type="button" onclick="retakePhoto()" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur text-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white flex items-center gap-2 border border-gray-200">
@@ -213,8 +246,8 @@
                     @error('photo_evidence_before') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                {{-- FOOTER BUTTON (FIXED BOTTOM DI DALAM CONTAINER) --}}
-                <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40">
+                {{-- FOOTER BUTTON --}}
+                <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40" style="left: 50%; transform: translateX(-50%);">
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                         <span>KIRIM LAPORAN</span>
                         <i class="fa-regular fa-paper-plane"></i>

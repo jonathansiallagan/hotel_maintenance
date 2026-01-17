@@ -160,10 +160,11 @@
 
                             {{-- Tombol Lihat Foto Hasil (Optional) --}}
                             @if($ticket->photo_evidence_after)
-                            <button onclick="window.open('{{ asset('storage/'.$ticket->photo_evidence_after) }}', '_blank')"
-                                class="mt-2 text-[10px] flex items-center gap-1 text-green-600 hover:underline">
+                            <a href="{{ asset('storage/'.$ticket->photo_evidence_after) }}"
+                                target="_blank"
+                                class="mt-2 text-[10px] flex items-center gap-1 text-green-600 hover:underline cursor-pointer">
                                 <i class="fa-solid fa-image"></i> Lihat Bukti Selesai
-                            </button>
+                            </a>
                             @endif
                         </div>
                         @else

@@ -13,9 +13,9 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     // Konstanta Role untuk kemudahan coding
-    const ROLE_ADMIN = 'admin_manager';
+    const ROLE_ADMIN = 'admin';
     const ROLE_TEKNISI = 'technician';
-    const ROLE_USER = 'user_reporter';
+    const ROLE_STAFF = 'staff';
 
     protected $guarded = ['id']; // Semua kolom boleh diisi kecuali ID
 

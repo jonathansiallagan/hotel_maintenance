@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Asset extends Model
 {
@@ -12,10 +13,21 @@ class Asset extends Model
 
     protected $guarded = ['id'];
 
+    // 1. AUTO GENERATE UUID SAAT CREATE
+    protected static function booted()
+    {
+        static::creating(function ($asset) {
+            // Jika uuid kosong, buatkan baru
+            if (empty($asset->uuid)) {
+                $asset->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
     // Relasi ke Kategori
     public function category()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(AssetCategory::class, 'category_id');
     }
 
     // Relasi ke Lokasi

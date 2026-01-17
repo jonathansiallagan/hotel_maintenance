@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('ticket_number')->unique();
             $table->string('title');
             $table->text('description');
-            $table->string('photo_evidence_before');
+            $table->string('photo_evidence_before')->nullable();
             $table->string('photo_evidence_after')->nullable();
             $table->enum('priority', ['low', 'medium', 'high', 'critical'])->default('medium');
             $table->string('status')->default('open')->index();

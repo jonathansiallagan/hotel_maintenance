@@ -28,7 +28,7 @@ class Ticket extends Model
     }
 
     // Relasi: Siapa pelapornya?
-    public function reporter()
+    public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['admin_manager', 'technician', 'user_reporter'])->default('user_reporter')->after('email');
+            $table->enum('role', ['admin', 'technician', 'staff'])->default('staff')->after('email');
             $table->string('department')->nullable()->after('role');
             $table->boolean('is_active')->default(true);
             $table->softDeletes();

@@ -5,13 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Category extends Model
+class SparepartCategory extends Model
 {
     use HasFactory;
+
     protected $guarded = ['id'];
 
-    public function assets()
+    public function spareparts()
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(Sparepart::class, 'sparepart_category_id');
     }
 }

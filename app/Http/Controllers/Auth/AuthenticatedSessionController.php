@@ -30,13 +30,20 @@ class AuthenticatedSessionController extends Controller
         // LOGIC REDIRECT 3 ROLE
         $role = $request->user()->role;
 
-        $url = match ($role) {
-            'admin'      => route('admin.dashboard', absolute: false),
-            'technician' => route('technician.dashboard', absolute: false),
-            default      => route('staff.dashboard', absolute: false),
-        };
+        switch ($role) {
+            case 'admin':
+                return redirect()->route('admin.dashboard');
 
-        return redirect()->intended($url);
+            case 'technician':
+                return redirect()->route('technician.dashboard');
+
+            case 'staff':
+                return redirect()->route('staff.dashboard');
+
+            default:
+                // Fallback jika role tidak dikenali
+                return redirect()->route('login');
+        }
     }
 
     /**

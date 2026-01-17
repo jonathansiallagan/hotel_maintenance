@@ -4,11 +4,18 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Models\Asset;
+use App\Http\Middleware\IsAdmin;
 
 // Controller
 use App\Http\Controllers\Staff\TicketController as StaffTicketController;
 use App\Http\Controllers\Technician\JobController as TechJobController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\MaintenanceController;
+use App\Http\Controllers\Admin\AssetController;
+use App\Http\Controllers\Admin\SparepartController;
+use App\Http\Controllers\Admin\UserController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -78,10 +85,53 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     Route::prefix('admin')->name('admin.')->group(function () {
 
-        // Dashboard Utama
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])
-            ->name('dashboard');
+        Route::middleware([IsAdmin::class])->group(function () {
+
+            // A. DASHBOARD
+            Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+                ->name('dashboard');
+
+            // SEARCH & NOTIFICATIONS
+            Route::get('/search', [AdminDashboardController::class, 'search'])->name('search');
+            Route::get('/notifications', [AdminDashboardController::class, 'notifications'])->name('notifications');
+
+            // B. MASTER DATA
+            // management aset
+            Route::resource('assets', AssetController::class);
+            Route::get('/assets/{id}/print-qr', [AssetController::class, 'printQr'])
+                ->name('assets.print_qr');
+
+            //management sparepart
+            Route::resource('spareparts', SparepartController::class);
+
+            // C. OPERASIONAL (Monitoring Tiket)
+            Route::resource('tickets', AdminTicketController::class)
+                ->only(['index', 'show', 'update']);
+            Route::get('/tickets/{id}/print', [AdminTicketController::class, 'print'])
+                ->name('tickets.print');
+            Route::post('/tickets/{id}/add-sparepart', [AdminTicketController::class, 'addSparepart'])
+                ->name('tickets.add-sparepart');
+            Route::delete('/tickets/{ticket}/remove-sparepart/{sparepart}', [AdminTicketController::class, 'removeSparepart'])
+                ->name('tickets.remove-sparepart');
+
+            // D. PERENCANAAN (Jadwal Maintenance Rutin)
+            Route::resource('maintenance', MaintenanceController::class)
+                ->only(['index', 'store', 'destroy']);
+
+            // E. REPORTING (Laporan Tiket)
+            Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('/reports/print', [ReportController::class, 'print'])->name('reports.print');
+
+            // F. USER MANAGEMENT
+            Route::resource('users', UserController::class)->only(['index']);
+
+
+        });
     });
+
+    Route::get('/scan/{uuid}', function ($uuid) {
+        return "Scan Berhasil: " . $uuid;
+    })->name('scan.index');
 
     // =========================================================================
     // 5. UTILITY & API (Internal)

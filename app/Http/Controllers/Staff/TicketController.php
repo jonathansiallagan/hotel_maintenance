@@ -40,9 +40,18 @@ class TicketController extends Controller
      */
     public function create(Request $request)
     {
-        $assetId = $request->query('asset_id');
+        $scannedAsset = null;
 
-        $scannedAsset = \App\Models\Asset::with('category')->find($assetId);
+        if ($request->has('asset_uuid')) {
+            $scannedAsset = \App\Models\Asset::with('category')
+                ->where('uuid', $request->query('asset_uuid'))
+                ->first();
+        }
+
+        if (!$scannedAsset && $request->has('asset_id')) {
+            $scannedAsset = \App\Models\Asset::with('category')
+                ->find($request->query('asset_id'));
+        }
 
         $commonIssues = ['Lainnya'];
 
@@ -58,7 +67,9 @@ class TicketController extends Controller
             };
         }
 
-        return view('staff.tickets.create', compact('scannedAsset', 'commonIssues'));
+        $allAssets = \App\Models\Asset::all();
+
+        return view('staff.tickets.create', compact('scannedAsset', 'commonIssues', 'allAssets'));
     }
 
     /**
@@ -150,7 +161,7 @@ class TicketController extends Controller
         }
 
         // 2. Load relasi yang dibutuhkan
-        $ticket->load(['asset.location', 'reporter', 'technician']);  
+        $ticket->load(['asset.location', 'user', 'technician']);
 
         return view('staff.tickets.show', compact('ticket'));
     }
