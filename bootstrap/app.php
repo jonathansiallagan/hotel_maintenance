@@ -28,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 default      => '/dashboard',
             };
         });
+
+        $middleware->trustProxies(at: '*');
         // -----------------------------
 
     })

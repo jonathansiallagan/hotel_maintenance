@@ -18,19 +18,19 @@ class TicketController extends Controller
      */
     public function index()
     {
-        $tickets = \App\Models\Ticket::where('user_id', Auth::id())
+        $tickets = Ticket::where('user_id', Auth::id())
             ->whereIn('status', ['open', 'in_progress', 'pending_sparepart'])
             ->latest()
             ->get();
 
         // Hitung stats (opsional)
         $stats = [
-            'process' => \App\Models\Ticket::where('user_id', Auth::id())->where('status', 'in_progress')->count(),
-            'done'    => \App\Models\Ticket::where('user_id', Auth::id())->where('status', 'resolved')->count(),
+            'process' => Ticket::where('user_id', Auth::id())->where('status', 'in_progress')->count(),
+            'done'    => Ticket::where('user_id', Auth::id())->where('status', 'resolved')->count(),
         ];
 
         // Jika scan aset (scan logic)
-        $scannedAsset = null; // Default kosong
+        $scannedAsset = null;
 
         return view('staff.dashboard', compact('tickets', 'stats', 'scannedAsset'));
     }
@@ -43,13 +43,13 @@ class TicketController extends Controller
         $scannedAsset = null;
 
         if ($request->has('asset_uuid')) {
-            $scannedAsset = \App\Models\Asset::with('category')
+            $scannedAsset = Asset::with('category')
                 ->where('uuid', $request->query('asset_uuid'))
                 ->first();
         }
 
         if (!$scannedAsset && $request->has('asset_id')) {
-            $scannedAsset = \App\Models\Asset::with('category')
+            $scannedAsset = Asset::with('category')
                 ->find($request->query('asset_id'));
         }
 
@@ -67,7 +67,7 @@ class TicketController extends Controller
             };
         }
 
-        $allAssets = \App\Models\Asset::all();
+        $allAssets = Asset::all();
 
         return view('staff.tickets.create', compact('scannedAsset', 'commonIssues', 'allAssets'));
     }
@@ -164,5 +164,25 @@ class TicketController extends Controller
         $ticket->load(['asset.location', 'user', 'technician']);
 
         return view('staff.tickets.show', compact('ticket'));
+    }
+
+    public function verifyAsset($identifier)
+    {
+        $asset = Asset::where('uuid', $identifier)
+            ->orWhere('id', $identifier)
+            ->first();
+
+        if ($asset) {
+            return response()->json([
+                'success' => true,
+                'id'      => $asset->id,
+                'name'    => $asset->name
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Aset tidak terdaftar di sistem hotel.'
+        ], 404);
     }
 }

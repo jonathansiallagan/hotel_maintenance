@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\MaintenanceController;
 use App\Http\Controllers\Admin\AssetController;
 use App\Http\Controllers\Admin\SparepartController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\SearchController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -92,7 +93,7 @@ Route::middleware('auth')->group(function () {
                 ->name('dashboard');
 
             // SEARCH & NOTIFICATIONS
-            Route::get('/search', [AdminDashboardController::class, 'search'])->name('search');
+            Route::get('/search', [SearchController::class, 'search'])->name('search');
             Route::get('/notifications', [AdminDashboardController::class, 'notifications'])->name('notifications');
 
             // B. MASTER DATA
@@ -124,8 +125,6 @@ Route::middleware('auth')->group(function () {
 
             // F. USER MANAGEMENT
             Route::resource('users', UserController::class)->only(['index']);
-
-
         });
     });
 
@@ -136,22 +135,9 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     // 5. UTILITY & API (Internal)
     // =========================================================================
-    Route::get('/scan-asset/{uuid}', function ($uuid) {
-        $asset = Asset::with('location', 'category')->where('uuid', $uuid)->first();
-
-        if (!$asset) {
-            return response()->json(['error' => 'Aset tidak ditemukan'], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'id' => $asset->id,
-            'name' => $asset->name,
-            'serial_number' => $asset->serial_number ?? '-',
-            'location' => $asset->location->name ?? '-',
-            'image' => $asset->image_path
-        ]);
-    })->name('api.asset.scan');
 });
+
+Route::get('/scan-asset/{identifier}', [AssetController::class, 'scanAssetJson'])
+    ->name('scan.asset.json');
 
 require __DIR__ . '/auth.php';

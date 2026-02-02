@@ -95,7 +95,7 @@
                                 {{-- Tombol Hapus --}}
                                 <button @click="showDeleteModal = true; deleteUrl = '{{ route('admin.assets.destroy', $asset->id) }}'"
                                     class="text-red-500 hover:text-red-600 font-bold text-xs border border-red-200 bg-red-50 px-3 py-1 rounded transition">
-                                    Hapus
+                                    Hapus   
                                 </button>
                             </td>
                         </tr>

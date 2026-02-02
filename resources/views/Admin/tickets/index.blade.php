@@ -42,7 +42,8 @@
             <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                 <tr>
                     <th class="px-6 py-4">ID & Tanggal</th>
-                    <th class="px-6 py-4">Aset / Masalah</th>
+                    <th class="px-6 py-4">Aset</th>
+                    <th class="px-6 py-4">Masalah</th>
                     <th class="px-6 py-4">Pelapor</th>
                     <th class="px-6 py-4">Status</th>
                     <th class="px-6 py-4 text-right">Aksi</th>
@@ -50,15 +51,25 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach($tickets as $ticket)
-                <tr class="hover:bg-gray-50/50">
+                <tr id="ticket-{{ $ticket->id }}" class="hover:bg-gray-50/50">
                     <td class="px-6 py-4">
-                        <span class="font-mono text-xs text-gray-400">#{{ $ticket->id }}</span>
-                        <div class="text-xs text-gray-600">{{ $ticket->created_at->format('d M Y') }}</div>
+                        {{-- Tampilkan Ticket Number, jika kosong pakai ID --}}
+                        <div class="font-bold text-gray-800">{{ $ticket->ticket_number }}</div>
+                        <div class="text-xs text-gray-500 mt-1">{{ $ticket->created_at->format('d M Y H:i') }}</div>
                     </td>
+
+                    {{-- ASET: nama aset (atas) dan lokasi (bawah) --}}
                     <td class="px-6 py-4">
                         <div class="font-bold text-gray-800">{{ $ticket->asset->name ?? 'Tanpa Aset' }}</div>
-                        <div class="text-xs text-gray-500 truncate max-w-[200px]">{{ $ticket->description }}</div>
+                        <div class="text-xs text-gray-500 mt-1">{{ $ticket->asset->location->name ?? '-' }}</div>
                     </td>
+
+                    {{-- MASALAH: judul (atas) dan deskripsi (bawah) --}}
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-800">{{ Str::limit($ticket->title, 80) }}</div>
+                        <div class="text-xs text-gray-500 truncate max-w-[200px]">{{ Str::limit($ticket->description, 140) }}</div>
+                    </td>
+
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold">
@@ -70,11 +81,11 @@
                     <td class="px-6 py-4">
                         @php
                         $statusColors = [
-                            'open' => 'bg-red-100 text-red-700',
-                            'in_progress' => 'bg-blue-100 text-blue-700',
-                            'pending_sparepart' => 'bg-amber-100 text-amber-700',
-                            'resolved' => 'bg-green-100 text-green-700',
-                            'closed' => 'bg-gray-100 text-gray-700'
+                        'open' => 'bg-red-100 text-red-700',
+                        'in_progress' => 'bg-blue-100 text-blue-700',
+                        'pending_sparepart' => 'bg-amber-100 text-amber-700',
+                        'resolved' => 'bg-green-100 text-green-700',
+                        'closed' => 'bg-gray-100 text-gray-700'
                         ];
                         @endphp
                         <span class="px-2 py-1 rounded text-xs font-bold {{ $statusColors[$ticket->status] ?? 'bg-gray-100' }}">

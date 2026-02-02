@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Animasi Sorotan (Highlight) */
+@keyframes highlight-pulse {
+    0% {
+        background-color: rgba(250, 204, 21, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(250, 204, 21, 0.2);
+        transform: scale(1.01);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+/* Selector :target otomatis aktif saat URL memiliki #id yang cocok */
+:target {
+    animation: highlight-pulse 2s ease-out;
+    scroll-margin-top: 100px;
+    border-radius: 6px;
+}

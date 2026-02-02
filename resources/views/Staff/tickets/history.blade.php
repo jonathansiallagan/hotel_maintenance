@@ -168,56 +168,83 @@
 
     {{-- 3. SCRIPT SCANNER --}}
     @push('scripts')
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         let html5QrcodeScanner;
 
         function startScanner() {
+            // console.log("Memulai Inisialisasi Scanner...");
             document.getElementById('scannerModal').classList.remove('hidden');
-            html5QrcodeScanner = new Html5Qrcode("reader");
-            const config = {
-                fps: 10,
-                qrbox: {
-                    width: 250,
-                    height: 250
-                }
-            };
-            html5QrcodeScanner.start({
-                    facingMode: "environment"
-                }, config, onScanSuccess, onScanFailure)
-                .then(() => {
-                    document.getElementById('scan-loading').style.display = 'none';
-                });
-        }
+            document.getElementById('scan-loading').style.display = 'block';
 
-        function stopScanner() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    document.getElementById('scannerModal').classList.add('hidden');
-                }).catch(err => console.log(err));
-            } else {
-                document.getElementById('scannerModal').classList.add('hidden');
+            if (!document.getElementById('reader')) {
+                // console.error("Elemen 'reader' tidak ditemukan di DOM!");
+                return;
             }
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+
+            const config = {
+                fps: 20,
+                qrbox: {
+                    width: 280,
+                    height: 280
+                },
+                aspectRatio: 1.0
+            };
+
+            html5QrcodeScanner.start({
+                        facingMode: "environment"
+                    },
+                    config,
+                    (decodedText, decodedResult) => {
+                        // console.log("QR Terdeteksi!", decodedText);
+                        onScanSuccess(decodedText, decodedResult);
+                    },
+                    (errorMessage) => {
+                        // console.debug("Scanner berjalan, mencari pola...");
+                    }
+                )
+                .then(() => {
+                    // console.log("Kamera Berhasil Aktif & Pemindaian Dimulai");
+                    document.getElementById('scan-loading').style.display = 'none';
+                })
+                .catch(err => {
+                    // console.error("Gagal Start Scanner:", err);
+                    alert("Kamera Error: " + err);
+                });
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            html5QrcodeScanner.stop();
-            fetch(`/scan-asset/${decodedText}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/staff/lapor?asset_id=${data.id}`;
-                    } else {
-                        alert('Aset tidak dikenali.');
-                        stopScanner();
-                    }
-                })
-                .catch(error => {
-                    alert('Gagal memproses QR Code.');
-                    stopScanner();
-                });
-        }
+            html5QrcodeScanner.stop().then(() => {
+                // console.log("Scanner dihentikan, memproses data...");
 
-        function onScanFailure(error) {}
+                let identifier = decodedText;
+                if (decodedText.includes('asset_uuid=')) {
+                    const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+                    identifier = urlParams.get('asset_uuid');
+                }
+
+                const fetchUrl = `${window.location.origin}/scan-asset/${identifier}`;
+                // console.log("Mengirim permintaan ke:", fetchUrl);
+
+                fetch(fetchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = `/staff/lapor?asset_id=${data.id}`;
+                        } else {
+                            alert('Aset tidak dikenal.');
+                            startScanner();
+                        }
+                    })
+                    .catch(error => {
+                        // console.error("Fetch Error:", error);
+                        alert("Gagal menghubungi server.");
+                        startScanner();
+                    });
+            });
+        }
     </script>
     @endpush
 

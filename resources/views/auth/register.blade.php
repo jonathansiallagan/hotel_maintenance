@@ -11,8 +11,8 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-sm bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-blue-600 p-4 text-center">
-            <h1 class="text-lg font-bold text-white">Buat Akun Baru</h1>
+        <div class="bg-[#BFAFB0] p-4 text-center">
+            <h1 class="text-lg font-bold text-[#6F6C6C]">Buat Akun Baru</h1>
         </div>
 
         <div class="p-6">
@@ -49,7 +49,7 @@
                         class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
                 </div>
 
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">
+                <button type="submit" class="w-full bg-[#BFAFB0] text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">
                     DAFTAR
                 </button>
 

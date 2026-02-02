@@ -29,7 +29,7 @@ class AssetController extends Controller
     // DETAIL ASSET DENGAN RIWAYAT TIKET
     public function show($id)
     {
-        $asset = Asset::with(['category', 'location', 'tickets' => function($query) {
+        $asset = Asset::with(['category', 'location', 'tickets' => function ($query) {
             $query->with(['user', 'technician'])->latest();
         }])->findOrFail($id);
 
@@ -167,5 +167,32 @@ class AssetController extends Controller
         $asset->delete();
 
         return redirect()->route('admin.assets.index')->with('success', 'Aset berhasil dihapus!');
+    }
+
+    public function scanAssetJson($identifier)
+    {
+        // 1. Cari Aset berdasarkan UUID (karena QR Code biasanya menyimpan UUID)
+        $asset = Asset::where('uuid', $identifier)->first();
+
+        // 2. Jika tidak ketemu via UUID, coba cari pakai ID biasa (backup plan)
+        if (!$asset) {
+            $asset = Asset::find($identifier);
+        }
+
+        // 3. Respon Hasil
+        if ($asset) {
+            return response()->json([
+                'success' => true,
+                'id' => $asset->id,
+                'name' => $asset->name,
+                'location' => $asset->location->name ?? '-',
+                'message' => 'Aset ditemukan'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data aset tidak ditemukan dalam sistem.'
+            ], 404);
+        }
     }
 }

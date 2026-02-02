@@ -137,78 +137,212 @@
     </div>
 
     {{-- MODAL SCANNER & SCRIPT (Tetap sama) --}}
-    <div id="scannerModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col items-center justify-center p-4">
-        <div class="relative w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl">
-            <div class="bg-gray-900 p-4 flex justify-between items-center text-white">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-qrcode mr-2"></i>Scan QR Aset</h3>
-                <button onclick="stopScanner()" class="text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-2xl"></i>
+    <div id="scannerModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+
+        <div class="relative w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+
+            {{-- Header Modal --}}
+            <div class="bg-gray-900 p-4 flex justify-between items-center text-white border-b border-gray-800">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode text-blue-400"></i> Scan QR Aset
+                </h3>
+                <button type="button" onclick="stopScanner()" aria-label="Tutup Scanner"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <div class="bg-black relative">
-                <div id="reader" class="w-full h-64 bg-black"></div>
-                <div id="scan-loading" class="absolute inset-0 flex items-center justify-center text-white text-xs pointer-events-none">
-                    <p>Memuat Kamera...</p>
+
+            {{-- Area Kamera (Menggunakan Aspect Ratio 1:1 / Kotak) --}}
+            <div class="bg-black relative h-64 w-full overflow-hidden group">
+
+                {{-- Elemen Reader (Library akan inject video kesini) --}}
+                <div id="reader" class="w-full h-full object-cover"></div>
+
+                {{-- Loading State dengan Animasi --}}
+                <div id="scan-loading" class="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-10">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-3"></i>
+                    <p class="text-xs font-medium tracking-wide animate-pulse">MEMUAT KAMERA...</p>
+                </div>
+
+                {{-- Overlay Garis Scan --}}
+                <div id="scan-overlay" class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center hidden">
+                    <div class="relative w-48 h-48">
+
+                        {{-- Border + shaded outside using large box-shadow (keperluan overlay hole) --}}
+                        <div class="absolute inset-0 rounded-lg border-2 border-blue-400 bg-transparent" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                        </div>
+
+                        {{-- Corner accents --}}
+                        <span class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+
+                        {{-- Scanner line (animated) --}}
+                        <div class="absolute left-0 right-0 h-0.5 bg-red-500 animate-scanner-line" style="box-shadow: 0 0 10px rgba(239,68,68,1);"></div>
+                    </div>
                 </div>
             </div>
-            <div class="p-4 bg-white text-center">
-                <p class="text-xs text-gray-500">Arahkan kamera ke QR Code aset.</p>
+
+            {{-- Footer --}}
+            <div class="p-4 bg-white text-center border-t border-gray-100">
+                <p class="text-xs text-gray-500">
+                    Pastikan QR Code berada di dalam kotak area scan.
+                </p>
             </div>
         </div>
     </div>
 
+    @push('styles')
+    <style>
+        #reader__dashboard_section_csr span,
+        #reader__dashboard_section_swaplink,
+
+        #qr-shaded-region {
+            display: none !important;
+        }
+
+        #reader video {
+            object-fit: cover;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+        }
+
+        @keyframes scanMove {
+            0% {
+                top: 0%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+
+        .animate-scanner-line {
+            animation: scanMove 2s linear infinite;
+        }
+    </style>
+
     @push('scripts')
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-        // ... (Script scanner sama seperti sebelumnya) ...
         let html5QrcodeScanner;
 
         function startScanner() {
             document.getElementById('scannerModal').classList.remove('hidden');
+            document.getElementById('scan-loading').style.display = 'block';
+
+            document.getElementById('scan-overlay').classList.add('hidden');
+
+            if (!document.getElementById('reader')) {
+                return;
+            }
+
+            if (html5QrcodeScanner) {
+                try {
+                    html5QrcodeScanner.clear();
+                } catch (e) {}
+            }
+
             html5QrcodeScanner = new Html5Qrcode("reader");
+
             const config = {
-                fps: 10,
+                fps: 20,
                 qrbox: {
-                    width: 250,
-                    height: 250
-                }
+                    width: 180,
+                    height: 180
+                },
+                aspectRatio: 1.0
             };
+
             html5QrcodeScanner.start({
-                    facingMode: "environment"
-                }, config, onScanSuccess, onScanFailure)
+                        facingMode: "environment"
+                    },
+                    config,
+                    (decodedText, decodedResult) => {
+                        onScanSuccess(decodedText, decodedResult);
+                    },
+                    (errorMessage) => {}
+                )
                 .then(() => {
                     document.getElementById('scan-loading').style.display = 'none';
-                });
-        }
-
-        function stopScanner() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    document.getElementById('scannerModal').classList.add('hidden');
-                }).catch(err => console.log(err));
-            } else {
-                document.getElementById('scannerModal').classList.add('hidden');
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            html5QrcodeScanner.stop();
-            fetch(`/scan-asset/${decodedText}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/staff/lapor?asset_id=${data.id}`;
-                    } else {
-                        alert('Aset tidak dikenali.');
-                        stopScanner();
-                    }
+                    document.getElementById('scan-overlay').classList.remove('hidden');
                 })
-                .catch(error => {
-                    alert('Gagal memproses QR Code.');
+                .catch(err => {
+                    alert("Kamera Error: " + err);
                     stopScanner();
                 });
         }
 
-        function onScanFailure(error) {}
+        function stopScanner() {
+            document.getElementById('scannerModal').classList.add('hidden');
+            document.getElementById('scan-overlay').classList.add('hidden');
+
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    console.log("Scanner berhenti.");
+                    html5QrcodeScanner.clear();
+                }).catch(err => {
+                    console.warn("Stop gagal:", err);
+                    try {
+                        html5QrcodeScanner.clear();
+                    } catch (e) {}
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                }).catch(() => {});
+            }
+
+            document.getElementById('scannerModal').classList.add('hidden');
+
+            let identifier = decodedText;
+            if (decodedText.includes('asset_uuid=')) {
+                const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+                identifier = urlParams.get('asset_uuid');
+            }
+
+            const routeTemplate = "{{ route('scan.asset.json', ['identifier' => 'PLACEHOLDER_ID']) }}";
+
+            const fetchUrl = routeTemplate.replace('PLACEHOLDER_ID', identifier);
+
+            console.log("URL Request:", fetchUrl);
+
+            fetch(fetchUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTP Status: " + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const baseUrl = "{{ route('staff.tickets.create') }}";
+                        window.location.href = `${baseUrl}?asset_id=${data.id}`;
+                    } else {
+                        alert('Aset tidak dikenal: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch Error:", error);
+                    alert("Gagal menghubungi server. Cek Console Log.");
+                });
+        }
     </script>
     @endpush
 

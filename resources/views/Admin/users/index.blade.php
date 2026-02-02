@@ -22,7 +22,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($users as $user)
-                        <tr class="hover:bg-gray-50/50 transition">
+                        <tr id="user-{{ $user->id }}" class="hover:bg-gray-50/50 transition">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
@@ -40,10 +40,10 @@
                             <td class="px-6 py-4">
                                 @php
                                 $roleColor = match($user->role) {
-                                    'admin' => 'bg-red-50 text-red-600 border border-red-100',
-                                    'technician' => 'bg-blue-50 text-blue-600 border border-blue-100',
-                                    'staff' => 'bg-green-50 text-green-600 border border-green-100',
-                                    default => 'bg-gray-50 text-gray-600'
+                                'admin' => 'bg-red-50 text-red-600 border border-red-100',
+                                'technician' => 'bg-blue-50 text-blue-600 border border-blue-100',
+                                'staff' => 'bg-green-50 text-green-600 border border-green-100',
+                                default => 'bg-gray-50 text-gray-600'
                                 };
                                 @endphp
                                 <span class="{{ $roleColor }} px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">

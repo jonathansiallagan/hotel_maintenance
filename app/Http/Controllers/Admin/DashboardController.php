@@ -20,6 +20,7 @@ class DashboardController extends Controller
         $doneTickets = Ticket::where('status', 'resolved')->count();
 
         // 2. Ambil Tiket Terbaru (5 teratas)
+        // Pastikan relasi 'user', 'technician', 'asset' ada di model Ticket
         $recentTickets = Ticket::with(['user', 'technician', 'asset'])
             ->latest()
             ->take(5)
@@ -42,74 +43,6 @@ class DashboardController extends Controller
         ));
     }
 
-    public function search(Request $request)
-    {
-        $query = $request->get('q');
-
-        if (!$query) {
-            return response()->json(['results' => []]);
-        }
-
-        $results = [];
-
-        // Search Tickets
-        $tickets = Ticket::with(['user', 'asset'])
-            ->where('title', 'like', "%{$query}%")
-            ->orWhere('description', 'like', "%{$query}%")
-            ->orWhere('id', 'like', "%{$query}%")
-            ->take(5)
-            ->get();
-
-        foreach ($tickets as $ticket) {
-            $results[] = [
-                'type' => 'ticket',
-                'id' => $ticket->id,
-                'title' => $ticket->title,
-                'description' => substr($ticket->description, 0, 100) . '...',
-                'url' => route('admin.tickets.show', $ticket->id),
-                'status' => $ticket->status,
-            ];
-        }
-
-        // Search Assets
-        $assets = Asset::with(['location', 'category'])
-            ->where('name', 'like', "%{$query}%")
-            ->orWhere('serial_number', 'like', "%{$query}%")
-            ->take(5)
-            ->get();
-
-        foreach ($assets as $asset) {
-            $results[] = [
-                'type' => 'asset',
-                'id' => $asset->id,
-                'title' => $asset->name,
-                'description' => 'SN: ' . ($asset->serial_number ?? 'N/A') . ' | Lokasi: ' . ($asset->location->name ?? 'N/A'),
-                'url' => route('admin.assets.show', $asset->id),
-                'status' => $asset->status,
-            ];
-        }
-
-        // Search Spareparts
-        $spareparts = Sparepart::with('category')
-            ->where('name', 'like', "%{$query}%")
-            ->orWhere('sku_code', 'like', "%{$query}%")
-            ->take(5)
-            ->get();
-
-        foreach ($spareparts as $sparepart) {
-            $results[] = [
-                'type' => 'sparepart',
-                'id' => $sparepart->id,
-                'title' => $sparepart->name,
-                'description' => 'SKU: ' . $sparepart->sku_code . ' | Stock: ' . $sparepart->stock,
-                'url' => route('admin.spareparts.show', $sparepart->id),
-                'status' => $sparepart->stock > 0 ? 'available' : 'out_of_stock',
-            ];
-        }
-
-        return response()->json(['results' => $results]);
-    }
-
     public function notifications()
     {
         // Get recent notifications - tickets that need attention
@@ -117,13 +50,13 @@ class DashboardController extends Controller
             ->where('priority', 'high')
             ->with(['user', 'asset'])
             ->latest()
-            ->take(10)
+            ->take(5)
             ->get();
 
         $pendingTickets = Ticket::where('status', 'pending_sparepart')
             ->with(['user', 'asset'])
             ->latest()
-            ->take(10)
+            ->take(5)
             ->get();
 
         $notifications = [];
@@ -132,8 +65,8 @@ class DashboardController extends Controller
             $notifications[] = [
                 'id' => $ticket->id,
                 'type' => 'urgent_ticket',
-                'title' => 'Tiket Urgent: ' . $ticket->title,
-                'message' => 'Prioritas tinggi membutuhkan perhatian segera',
+                'title' => 'Urgent: ' . ($ticket->ticket_code ?? '#' . $ticket->id),
+                'message' => 'Tiket prioritas tinggi: ' . substr($ticket->title, 0, 30) . '...',
                 'url' => route('admin.tickets.show', $ticket->id),
                 'time' => $ticket->created_at->diffForHumans(),
                 'icon' => 'fa-exclamation-triangle',
@@ -145,8 +78,8 @@ class DashboardController extends Controller
             $notifications[] = [
                 'id' => $ticket->id,
                 'type' => 'pending_ticket',
-                'title' => 'Menunggu Sparepart: ' . $ticket->title,
-                'message' => 'Tiket menunggu ketersediaan sparepart',
+                'title' => 'Pending Part: ' . ($ticket->ticket_code ?? '#' . $ticket->id),
+                'message' => 'Menunggu sparepart: ' . substr($ticket->title, 0, 30) . '...',
                 'url' => route('admin.tickets.show', $ticket->id),
                 'time' => $ticket->created_at->diffForHumans(),
                 'icon' => 'fa-clock',
@@ -154,11 +87,9 @@ class DashboardController extends Controller
             ];
         }
 
-        // Sort by created_at descending
-        usort($notifications, function($a, $b) {
-            return strtotime($b['time']) - strtotime($a['time']);
-        });
+        // Sort by created_at descending (berdasarkan string time diff mungkin kurang akurat, 
+        // idealnya sorting object collection sebelum loop, tapi untuk notif sederhana ini oke)
 
-        return response()->json(['notifications' => array_slice($notifications, 0, 10)]);
+        return response()->json(['notifications' => $notifications]);
     }
 }

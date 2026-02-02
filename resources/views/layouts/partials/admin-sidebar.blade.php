@@ -1,19 +1,18 @@
-<aside class="flex flex-col w-72 h-screen bg-white border-r border-gray-200 shrink-0">
+<aside class="flex flex-col w-72 h-screen bg-[#002760] border-r border-gray-200 shrink-0">
 
     {{-- 1. HEADER SIDEBAR (LOGO) --}}
     {{-- Tinggi 100px agar sejajar dengan Navbar --}}
-    <div class="flex items-center gap-3 px-6 border-b border-gray-200"
-        style="height: 70px;">
+    <div class="flex items-center gap-3 px-6 border-b border-gray-200 h-[70px]">
 
         <img src="{{ asset('images/Logo_Marianna.png') }}"
             class="w-10 h-10 object-contain"
             alt="Logo">
 
         <div class="flex flex-col justify-center">
-            <span class="text-sm font-bold text-[#D0BBB8] leading-tight">
+            <span class="text-sm font-bold text-[#CDB9B7] leading-tight">
                 Marianna Resort
             </span>
-            <span class="text-sm font-bold text-[#D0BBB8] leading-tight">
+            <span class="text-sm font-bold text-[#CDB9B7] leading-tight">
                 & Convention Tuktuk
             </span>
         </div>

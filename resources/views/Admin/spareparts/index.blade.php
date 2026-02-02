@@ -44,7 +44,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($spareparts as $sparepart)
-                        <tr class="hover:bg-gray-50/50 transition">
+                        <tr id="part-{{ $sparepart->id }}" class="hover:bg-gray-50/50 transition">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">

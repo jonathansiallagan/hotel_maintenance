@@ -153,7 +153,7 @@
         </main>
 
         {{-- BOTTOM STATUS BAR (Optional, sebagai footer pemanis) --}}
-        <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 p-3 text-center text-[10px] text-gray-400">
+        <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 p-3 text-center text-[10px] text-gray-400 z-50 shadow-lg">
             <p>&copy; HMS System • V1.0</p>
         </div>
 

@@ -13,7 +13,6 @@ class SparepartController extends Controller
 {
     public function index(Request $request)
     {
-        // If sparepart categories table is empty, try to copy general categories from `categories` table
         if (SparepartCategory::count() === 0) {
             $assetCategories = AssetCategory::all();
             if ($assetCategories->isNotEmpty()) {
@@ -46,7 +45,7 @@ class SparepartController extends Controller
             });
         }
 
-        $spareparts = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $spareparts = $query->latest()->paginate(10)->withQueryString();
 
         return view('admin.spareparts.index', compact('spareparts'));
     }
