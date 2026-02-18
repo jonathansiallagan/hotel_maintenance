@@ -16,9 +16,8 @@
     {{-- CONTAINER UTAMA --}}
     <div class="relative max-w-md mx-auto min-h-screen flex flex-col bg-gray-50 text-gray-800 shadow-2xl font-sans">
 
-        {{-- HEADER SECTION (Navy Blue) --}}
+        {{-- HEADER SECTION --}}
         <header class="bg-[#0A2647] pt-5 pb-16 px-5 rounded-b-[2rem] shadow-xl sticky top-0 z-10">
-            {{-- ... (Header tetap sama seperti kode Anda) ... --}}
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-3">
                     <a href="{{ route('technician.dashboard', ['tab' => 'mytask']) }}"
@@ -28,18 +27,33 @@
                     <h1 class="text-white font-bold text-base tracking-wide">Detail Pengerjaan</h1>
                 </div>
 
-                <div x-data="{ 
-                        start: new Date('{{ $ticket->started_at ?? now() }}'),
-                        now: new Date(),
-                        get duration() {
-                            let diff = Math.floor((this.now - this.start) / 1000);
-                            let h = Math.floor(diff / 3600).toString().padStart(2, '0');
-                            let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-                            let s = (diff % 60).toString().padStart(2, '0');
-                            return `${h}:${m}:${s}`;
+                {{-- TIMER LOGIC --}}
+                <div x-data="{
+                        {{-- UBAH DI SINI: Gunakan started_at agar mulai dari 0 saat diambil --}}
+                        seconds: {{ $ticket->started_at ? (time() - strtotime($ticket->started_at)) : 0 }},
+                        duration: '00:00:00',
+
+                        init() {
+                            this.formatTime();
+                            setInterval(() => {
+                                this.seconds++;
+                                this.formatTime();
+                            }, 1000);
+                        },
+
+                        formatTime() {
+                            let hrs = Math.floor(this.seconds / 3600);
+                            let mins = Math.floor((this.seconds % 3600) / 60);
+                            let secs = Math.floor(this.seconds % 60);
+
+                            let h = hrs.toString().padStart(2, '0');
+                            let m = mins.toString().padStart(2, '0');
+                            let s = secs.toString().padStart(2, '0');
+
+                            this.duration = `${h}:${m}:${s}`;
                         }
-                    }"
-                    x-init="setInterval(() => { now = new Date() }, 1000)">
+                    }">
+
                     <div class="flex items-center gap-2 bg-blue-900/60 rounded-lg px-3 py-1.5 border border-blue-500/30 backdrop-blur-md">
                         <i class="fa-regular fa-clock text-blue-300 text-xs animate-pulse"></i>
                         <span class="font-mono font-bold text-white text-sm tracking-widest" x-text="duration">00:00:00</span>
@@ -66,8 +80,7 @@
         {{-- MAIN CONTENT --}}
         <main class="flex-1 px-4 -mt-8 pb-10 z-20 overflow-y-auto scrollbar-hide">
 
-            {{-- SOLUSI NO. 3: ALERT ERROR VALIDASI FOTO KOSONG --}}
-            {{-- Letakkan blok ini tepat di bawah tag <main> agar langsung terlihat --}}
+            {{-- ERROR ALERT --}}
             @if ($errors->any())
             <div class="mb-5 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r shadow-sm animate-bounce" role="alert">
                 <div class="flex items-center gap-2 mb-1">
@@ -81,11 +94,9 @@
                 </ul>
             </div>
             @endif
-            {{-- AKHIR SOLUSI NO. 3 --}}
 
-            {{-- 1. CARD MASALAH (Tetap sama) --}}
+            {{-- 1. CARD MASALAH --}}
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 mb-5">
-                {{-- ... konten card masalah ... --}}
                 <div class="flex justify-between items-start mb-3">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                         <i class="fa-solid fa-circle-exclamation text-red-500"></i> Keluhan User
@@ -112,7 +123,7 @@
                 @csrf @method('PATCH')
                 <input type="hidden" name="action" value="finish">
 
-                {{-- Input: Bunda Tindakan --}}
+                {{-- Input: Note Tindakan --}}
                 <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                     <label class="block text-sm font-bold text-gray-700 mb-2">Tindakan Perbaikan</label>
                     <textarea name="technician_note" rows="3"
@@ -120,27 +131,21 @@
                         placeholder="Deskripsikan perbaikan..." required>{{ old('technician_note', $ticket->technician_note) }}</textarea>
                 </div>
 
-                {{-- SOLUSI NO. 2: INPUT MATERIAL (ALPINE JS FIX) --}}
-                {{-- Pastikan x-data didefinisikan di div pembungkus utama ini --}}
-                <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm"
-                    x-data="{ rows: [] }">
-
+                {{-- Input: Material --}}
+                <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm" x-data="{ rows: [] }">
                     <label class="block text-sm font-bold text-gray-700 mb-3 flex justify-between items-center">
                         <span>Material Terpakai</span>
-                        {{-- Tombol Tambah --}}
                         <button type="button" @click="rows.push({id: '', qty: 1})" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full font-bold hover:bg-blue-100 border border-blue-100 transition">
                             <i class="fa-solid fa-plus mr-1"></i> Tambah
                         </button>
                     </label>
 
-                    {{-- Pesan Kosong --}}
                     <div x-show="rows.length === 0" class="text-center py-3 border-2 border-dashed border-gray-100 rounded-lg text-xs text-gray-400">
                         Tidak ada material yang digunakan.
                     </div>
 
-                    {{-- Looping Baris Material --}}
                     <template x-for="(row, index) in rows" :key="index">
-                        <div class="flex gap-2 mb-3 items-center animate-fade-in-up">
+                        <div class="flex gap-2 mb-3 items-center">
                             <div class="relative flex-1">
                                 <select :name="'spareparts['+index+'][id]'" x-model="row.id" class="w-full rounded-xl border-gray-200 text-xs bg-gray-50 pl-3 pr-8 py-2.5 focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">-- Pilih Material --</option>
@@ -149,23 +154,17 @@
                                     @endforeach
                                 </select>
                             </div>
-
                             <input type="number" :name="'spareparts['+index+'][qty]'" x-model="row.qty" class="w-16 rounded-xl border-gray-200 bg-gray-50 text-xs text-center font-bold py-2.5" min="1" placeholder="Qty">
-
-                            {{-- Tombol Hapus --}}
                             <button type="button" @click="rows.splice(index, 1)" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition">
                                 <i class="fa-solid fa-trash text-sm"></i>
                             </button>
                         </div>
                     </template>
                 </div>
-                {{-- AKHIR SOLUSI NO. 2 --}}
 
                 {{-- Input: Foto Bukti --}}
                 <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                     <label class="block text-sm font-bold text-gray-700 mb-2">Foto Bukti Selesai <span class="text-red-500">*</span></label>
-
-                    {{-- Pesan Error Spesifik di Bawah Label --}}
                     @error('photo_after')
                     <p class="text-red-500 text-xs mb-2 font-semibold bg-red-50 px-2 py-1 rounded inline-block">
                         <i class="fa-solid fa-triangle-exclamation"></i> {{ $message }}
@@ -180,10 +179,7 @@
                                 <p class="text-[10px] font-medium" x-text="fileName ? 'Ganti Foto' : 'Ambil Foto'"></p>
                             </div>
                             <input type="file" name="photo_after" class="hidden"
-                                @change="
-                                    fileName = $event.target.files[0].name;
-                                    previewUrl = URL.createObjectURL($event.target.files[0]);
-                                " />
+                                @change="fileName = $event.target.files[0].name; previewUrl = URL.createObjectURL($event.target.files[0]);" />
                         </label>
                     </div>
                 </div>

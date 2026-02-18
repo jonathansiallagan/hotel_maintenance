@@ -47,7 +47,7 @@ class SparepartController extends Controller
 
         $spareparts = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.spareparts.index', compact('spareparts'));
+        return view('Admin.spareparts.index', compact('spareparts'));
     }
 
     public function create()
@@ -61,7 +61,7 @@ class SparepartController extends Controller
             $categories = SparepartCategory::all();
         }
 
-        return view('admin.spareparts.create', compact('categories'));
+        return view('Admin.spareparts.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -81,7 +81,7 @@ class SparepartController extends Controller
 
         Sparepart::create($data);
 
-        return redirect()->route('admin.spareparts.index')
+        return redirect()->route('Admin.spareparts.index')
             ->with('success', 'Sparepart berhasil ditambahkan!');
     }
 
@@ -89,7 +89,7 @@ class SparepartController extends Controller
     {
         $sparepart = Sparepart::findOrFail($id);
 
-        return view('admin.spareparts.show', compact('sparepart'));
+        return view('Admin.spareparts.show', compact('sparepart'));
     }
 
     public function edit($id)
@@ -104,7 +104,7 @@ class SparepartController extends Controller
             $categories = SparepartCategory::all();
         }
 
-        return view('admin.spareparts.edit', compact('sparepart', 'categories'));
+        return view('Admin.spareparts.edit', compact('sparepart', 'categories'));
     }
 
     public function update(Request $request, $id)
@@ -125,7 +125,7 @@ class SparepartController extends Controller
 
         $sparepart->update($data);
 
-        return redirect()->route('admin.spareparts.index')
+        return redirect()->route('Admin.spareparts.index')
             ->with('success', 'Sparepart berhasil diperbarui!');
     }
 
@@ -135,13 +135,13 @@ class SparepartController extends Controller
 
         // Cek apakah sparepart sedang digunakan di ticket yang belum selesai
         if ($sparepart->tickets()->where('status', '!=', 'resolved')->exists()) {
-            return redirect()->route('admin.spareparts.index')
+            return redirect()->route('Admin.spareparts.index')
                 ->with('error', 'Sparepart tidak dapat dihapus karena sedang digunakan dalam ticket yang belum selesai.');
         }
 
         $sparepart->delete();
 
-        return redirect()->route('admin.spareparts.index')
+        return redirect()->route('Admin.spareparts.index')
             ->with('success', 'Sparepart berhasil dihapus!');
     }
 

@@ -14,6 +14,12 @@ class Ticket extends Model
 
     // Casting tanggal agar otomatis jadi object Carbon (mudah diformat tgl/jam)
     protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+
         'reported_at' => 'datetime',
         'responded_at' => 'datetime',
         'resolved_at' => 'datetime',

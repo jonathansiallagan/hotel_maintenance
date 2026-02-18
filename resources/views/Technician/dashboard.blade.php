@@ -1,5 +1,18 @@
 <x-app-layout :hideNav="true">
 
+    {{-- LOGIKA TAMBAHAN: CEK STATUS TEKNISI --}}
+    @php
+    // Ambil jumlah tiket yang sedang dipegang (Progress + Pending)
+    // Kita gunakan data yang sudah dikirim controller ($stats['my_task']) atau hitung ulang jika perlu akurasi realtime
+    $currentTaskCount = $stats['my_task'];
+
+    // Cek apakah ada SATU tiket yang statusnya murni 'in_progress' (bukan pending)
+    // Query langsung agar realtime
+    $hasActiveProgress = \App\Models\Ticket::where('technician_id', Auth::id())
+    ->where('status', 'in_progress')
+    ->exists();
+    @endphp
+
     {{-- 1. STYLE TAMBAHAN (OPSIONAL) --}}
     @push('styles')
     <style>
@@ -10,6 +23,23 @@
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        /* Animasi kecil untuk modal */
+        @keyframes bounce-small {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .animate-bounce-small {
+            animation: bounce-small 0.5s ease-in-out;
         }
     </style>
     @endpush
@@ -78,6 +108,14 @@
             </div>
             @endif
 
+            {{-- Pesan Error (Jika ada error dari controller) --}}
+            @if(session('error'))
+            <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mb-4 shadow-sm flex items-center gap-2" role="alert">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span class="text-sm font-medium">{{ session('error') }}</span>
+            </div>
+            @endif
+
             <div class="space-y-4">
                 @forelse($tickets as $ticket)
                 {{-- Logic Tampilan Prioritas --}}
@@ -117,10 +155,26 @@
                             <span class="truncate">{{ $ticket->asset->location->name ?? '-' }} • {{ $ticket->asset->name ?? '-' }}</span>
                         </div>
 
-                        {{-- ACTION BUTTONS --}}
+                        {{-- ACTION BUTTONS (MODIFIED LOGIC) --}}
                         <div class="flex gap-2 pt-2">
                             @if($tab == 'queue')
-                            {{-- Form Ambil Tiket --}}
+
+                            {{-- KONDISI 1: SUDAH PUNYA 2 TIKET (DISABLED/MATI) --}}
+                            @if($currentTaskCount >= 2)
+                            <button disabled class="flex-1 w-full bg-gray-300 text-gray-500 cursor-not-allowed text-sm font-bold py-2.5 rounded-lg flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-lock"></i> <span>Slot Penuh (2/2)</span>
+                            </button>
+
+                            {{-- KONDISI 2: MASIH ADA YANG IN PROGRESS (TOMBOL MEMICU POPUP) --}}
+                            @elseif($hasActiveProgress)
+                            {{-- x-data kosong di sini agar Alpine menginisialisasi event click --}}
+                            <button type="button" x-data @click="$dispatch('open-warning')"
+                                class="flex-1 w-full bg-[#0A2647] opacity-80 hover:opacity-100 text-white text-sm font-bold py-2.5 rounded-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                                <span>Ambil Tiket</span> <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+
+                            {{-- KONDISI 3: AMAN (TOMBOL NORMAL) --}}
+                            @else
                             <form action="{{ route('technician.job.update', $ticket->id) }}" method="POST" class="flex-1">
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="take">
@@ -128,8 +182,10 @@
                                     <span>Ambil Tiket</span> <i class="fa-solid fa-arrow-right"></i>
                                 </button>
                             </form>
+                            @endif
+
                             @else
-                            {{-- Tombol Update / Selesai --}}
+                            {{-- Tombol Update / Selesai (Bagian Tab Tugasku - Tidak Diubah) --}}
                             <a href="{{ route('technician.job.show', $ticket->id) }}" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-green-600/20 active:scale-95 transition-transform text-center flex items-center justify-center gap-2">
                                 <span>Update / Selesai</span> <i class="fa-solid fa-screwdriver-wrench"></i>
                             </a>
@@ -159,6 +215,39 @@
 
     </div>
 
+    {{-- MODAL WARNING (POP UP) --}}
+    {{-- Ini akan muncul jika event 'open-warning' dipanggil --}}
+    <div x-data="{ show: false }"
+        @open-warning.window="show = true"
+        x-show="show"
+        style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0">
+
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-bounce-small"
+            @click.away="show = false">
+
+            <div class="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            </div>
+
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Selesaikan Tugas Dulu!</h3>
+            <p class="text-xs text-gray-500 leading-relaxed mb-6">
+                Anda masih memiliki tiket dengan status <strong>In Progress</strong>.<br>
+                Silakan <strong>Selesaikan</strong> atau ubah status menjadi <strong>Pending</strong> terlebih dahulu di tab "Tugasku" sebelum mengambil tiket baru.
+            </p>
+
+            <button @click="show = false" class="w-full bg-[#0A2647] text-white font-bold py-3 rounded-xl hover:bg-blue-900 transition shadow-lg">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
     {{-- 3. JAVASCRIPT KHUSUS DASHBOARD INI --}}
     @push('scripts')
     <script>
@@ -169,6 +258,13 @@
                 alert.style.transition = "opacity 0.5s ease";
                 alert.style.opacity = 0;
                 setTimeout(() => alert.remove(), 500);
+            }
+            // Auto hide error message juga
+            let errorAlert = document.getElementById('error-message');
+            if (errorAlert) {
+                errorAlert.style.transition = "opacity 0.5s ease";
+                errorAlert.style.opacity = 0;
+                setTimeout(() => errorAlert.remove(), 500);
             }
         }, 3000);
     </script>

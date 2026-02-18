@@ -23,7 +23,7 @@ class AssetController extends Controller
 
         $assets = $query->latest()->paginate(10);
 
-        return view('admin.assets.index', compact('assets'));
+        return view('Admin.assets.index', compact('assets'));
     }
 
     // DETAIL ASSET DENGAN RIWAYAT TIKET
@@ -42,7 +42,7 @@ class AssetController extends Controller
             'closed' => $asset->tickets->where('status', 'closed')->count(),
         ];
 
-        return view('admin.assets.show', compact('asset', 'ticketStats'));
+        return view('Admin.assets.show', compact('asset', 'ticketStats'));
     }
 
     // Kita buat method create, store, edit, update nanti setelah index jadi.
@@ -50,7 +50,7 @@ class AssetController extends Controller
     {
         $categories = AssetCategory::all();
         $locations = Location::all();
-        return view('admin.assets.create', compact('categories', 'locations'));
+        return view('Admin.assets.create', compact('categories', 'locations'));
     }
 
     public function store(Request $request)
@@ -83,7 +83,7 @@ class AssetController extends Controller
         ]);
 
         // 4. Redirect kembali dengan pesan sukses
-        return redirect()->route('admin.assets.index')
+        return redirect()->route('Admin.assets.index')
             ->with('success', 'Aset berhasil ditambahkan!');
     }
 
@@ -100,7 +100,7 @@ class AssetController extends Controller
             ->errorCorrection('M')
             ->generate($url);
 
-        return view('admin.assets.print-qr', compact('asset', 'qrCode'));
+        return view('Admin.assets.print-qr', compact('asset', 'qrCode'));
     }
 
     // --- EDIT DATA ---
@@ -110,7 +110,7 @@ class AssetController extends Controller
         $categories = AssetCategory::all();
         $locations = Location::all();
 
-        return view('admin.assets.edit', compact('asset', 'categories', 'locations'));
+        return view('Admin.assets.edit', compact('asset', 'categories', 'locations'));
     }
 
     // --- UPDATE DATA ---
@@ -151,7 +151,7 @@ class AssetController extends Controller
             'status'        => $request->status,
         ]);
 
-        return redirect()->route('admin.assets.index')->with('success', 'Data aset berhasil diperbarui!');
+        return redirect()->route('Admin.assets.index')->with('success', 'Data aset berhasil diperbarui!');
     }
 
     // --- DELETE DATA ---
@@ -166,7 +166,7 @@ class AssetController extends Controller
 
         $asset->delete();
 
-        return redirect()->route('admin.assets.index')->with('success', 'Aset berhasil dihapus!');
+        return redirect()->route('Admin.assets.index')->with('success', 'Aset berhasil dihapus!');
     }
 
     public function scanAssetJson($identifier)

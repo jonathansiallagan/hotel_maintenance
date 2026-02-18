@@ -34,7 +34,7 @@ class TicketController extends Controller
 
         $tickets = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.tickets.index', compact('tickets'));
+        return view('Admin.tickets.index', compact('tickets'));
     }
 
     // MENAMPILKAN DETAIL TIKET
@@ -43,7 +43,7 @@ class TicketController extends Controller
         $ticket = Ticket::with(['user', 'asset.location', 'technician', 'activities.user', 'spareparts.category'])
             ->findOrFail($id);
 
-        return view('admin.tickets.show', compact('ticket'));
+        return view('Admin.tickets.show', compact('ticket'));
     }
 
     // CETAK TIKET (PDF/HTML untuk Print)
@@ -52,7 +52,7 @@ class TicketController extends Controller
         $ticket = Ticket::with(['user', 'asset.location', 'technician', 'spareparts'])
             ->findOrFail($id);
 
-        return view('admin.tickets.print', compact('ticket'));
+        return view('Admin.tickets.print', compact('ticket'));
     }
 
     // UPDATE STATUS TIKET

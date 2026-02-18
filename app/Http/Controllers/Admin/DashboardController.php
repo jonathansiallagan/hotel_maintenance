@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $totalTechnicians = User::where('role', 'technician')->count();
         $totalUsers = User::count();
 
-        return view('admin.dashboard', compact(
+        return view('Admin.dashboard', compact(
             'totalTickets',
             'openTickets',
             'processTickets',
@@ -67,7 +67,7 @@ class DashboardController extends Controller
                 'type' => 'urgent_ticket',
                 'title' => 'Urgent: ' . ($ticket->ticket_code ?? '#' . $ticket->id),
                 'message' => 'Tiket prioritas tinggi: ' . substr($ticket->title, 0, 30) . '...',
-                'url' => route('admin.tickets.show', $ticket->id),
+                'url' => route('Admin.tickets.show', $ticket->id),
                 'time' => $ticket->created_at->diffForHumans(),
                 'icon' => 'fa-exclamation-triangle',
                 'color' => 'text-red-600',
@@ -80,7 +80,7 @@ class DashboardController extends Controller
                 'type' => 'pending_ticket',
                 'title' => 'Pending Part: ' . ($ticket->ticket_code ?? '#' . $ticket->id),
                 'message' => 'Menunggu sparepart: ' . substr($ticket->title, 0, 30) . '...',
-                'url' => route('admin.tickets.show', $ticket->id),
+                'url' => route('Admin.tickets.show', $ticket->id),
                 'time' => $ticket->created_at->diffForHumans(),
                 'icon' => 'fa-clock',
                 'color' => 'text-yellow-600',

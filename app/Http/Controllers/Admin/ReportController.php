@@ -27,7 +27,7 @@ class ReportController extends Controller
         // Ambil data (tambah get())
         $tickets = $tickets->latest()->get();
 
-        return view('admin.reports.index', compact('tickets', 'startDate', 'endDate', 'status'));
+        return view('Admin.reports.index', compact('tickets', 'startDate', 'endDate', 'status'));
     }
 
     // Fitur Cetak (Print View Sederhana)
@@ -48,6 +48,6 @@ class ReportController extends Controller
 
         $tickets = $tickets->latest()->get();
 
-        return view('admin.reports.print', compact('tickets', 'startDate', 'endDate'));
+        return view('Admin.reports.print', compact('tickets', 'startDate', 'endDate'));
     }
 }

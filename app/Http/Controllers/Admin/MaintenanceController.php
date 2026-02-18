@@ -13,7 +13,7 @@ class MaintenanceController extends Controller
     {
         $schedules = MaintenanceSchedule::with('asset')->latest()->paginate(10);
         $assets = Asset::all();
-        return view('admin.maintenance.index', compact('schedules', 'assets'));
+        return view('Admin.maintenance.index', compact('schedules', 'assets'));
     }
 
     public function store(Request $request)

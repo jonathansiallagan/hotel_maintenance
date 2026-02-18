@@ -17,12 +17,15 @@ class Asset extends Model
     protected static function booted()
     {
         static::creating(function ($asset) {
-            // Jika uuid kosong, buatkan baru
             if (empty($asset->uuid)) {
                 $asset->uuid = (string) Str::uuid();
             }
         });
     }
+
+    protected $casts = [
+        'problem_history' => 'array',
+    ];
 
     // Relasi ke Kategori
     public function category()

@@ -161,29 +161,89 @@
                 </div>
                 @endif
 
-
-                {{-- PILIH JUDUL MASALAH (Hanya muncul jika commonIssues tersedia) --}}
+                {{-- BAGIAN PILIH KATEGORI MASALAH --}}
                 @if(isset($commonIssues) && count($commonIssues) > 0)
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Kategori Masalah</label>
-                    <div class="flex flex-wrap gap-2">
+                <div x-data="{ 
+                    selectedMode: '', 
+                    finalTitle: '',
+                    manualInput: '',
+                    historyList: {{ json_encode($historyIssues ?? []) }},
+                    showDropdown: false
+                }" x-init="$watch('manualInput', value => finalTitle = value)">
+
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Kategori Masalah <span class="text-red-500">*</span></label>
+
+                    {{-- Hidden Input yang dikirim ke Controller --}}
+                    <input type="hidden" name="title" x-model="finalTitle">
+
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        {{-- Loop Masalah Utama --}}
                         @foreach($commonIssues as $issue)
-                        <input type="radio" name="title" id="cat_{{ Str::slug($issue) }}" value="{{ $issue }}"
-                            class="category-radio hidden"
-                            {{ old('title') == $issue ? 'checked' : '' }}>
-                        <label for="cat_{{ Str::slug($issue) }}" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
-                            {{ $issue }}
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_mode" value="{{ $issue }}"
+                                class="category-radio hidden"
+                                @click="selectedMode = 'common'; finalTitle = '{{ $issue }}'; manualInput = ''">
+                            <span class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white transition-all hover:bg-gray-50 select-none shadow-sm block"
+                                :class="finalTitle === '{{ $issue }}' ? 'bg-blue-50 border-blue-500 text-blue-600 ring-1 ring-blue-500' : ''">
+                                {{ $issue }}
+                            </span>
                         </label>
                         @endforeach
 
-                        <input type="radio" name="title" id="cat_manual" value="Lainnya" class="category-radio hidden">
-                        <label for="cat_manual" class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white cursor-pointer transition-all hover:bg-gray-50 select-none shadow-sm">
-                            Lainnya
+                        {{-- Tombol Lainnya --}}
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_mode" value="Lainnya"
+                                class="category-radio hidden"
+                                @click="selectedMode = 'manual'; finalTitle = manualInput">
+                            <span class="px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-500 bg-white transition-all hover:bg-gray-50 select-none shadow-sm block"
+                                :class="selectedMode === 'manual' ? 'bg-blue-50 border-blue-500 text-blue-600 ring-1 ring-blue-500' : ''">
+                                Lainnya...
+                            </span>
                         </label>
                     </div>
+
+                    {{-- CUSTOM HYBRID TEXTFIELD & DROPDOWN (Muncul saat 'Lainnya' dipilih) --}}
+                    <div x-show="selectedMode === 'manual'" x-transition class="mt-2 animate-fade-in-up relative">
+                        <label class="text-[10px] text-gray-500 font-bold mb-1 block">Ketik masalah atau pilih dari riwayat:</label>
+
+                        <div class="relative">
+                            {{-- Input Teks --}}
+                            <input type="text" x-model="manualInput"
+                                @focus="showDropdown = true"
+                                @click.away="showDropdown = false"
+                                class="w-full pl-4 pr-10 py-2.5 rounded-xl border border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-blue-50/20"
+                                placeholder="Contoh: Bau Gosong / Kabel Terkelupas..." autocomplete="off">
+
+                            {{-- Tombol Panah Bawah --}}
+                            <button type="button" @click="showDropdown = !showDropdown"
+                                class="absolute inset-y-0 right-0 px-4 flex items-center justify-center text-blue-400 hover:text-blue-600 focus:outline-none">
+                                <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="showDropdown ? 'rotate-180' : ''"></i>
+                            </button>
+                        </div>
+
+                        {{-- Dropdown Menu (Isi Riwayat) --}}
+                        <div x-show="showDropdown && historyList.length > 0"
+                            x-transition.opacity.duration.200ms
+                            class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                            <template x-for="item in historyList" :key="item">
+                                <div @click="manualInput = item; showDropdown = false"
+                                    class="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer border-b border-gray-50 last:border-0 transition-colors">
+                                    <span x-text="item"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Pesan Jika Riwayat Kosong --}}
+                        <div x-show="showDropdown && historyList.length === 0"
+                            x-transition.opacity
+                            class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs text-gray-400 text-center italic">
+                            Belum ada riwayat baru untuk aset ini. Silakan ketik manual.
+                        </div>
+                    </div>
+
                 </div>
                 @else
-                {{-- Jika Manual Mode, default title 'Lainnya' atau input manual --}}
+                {{-- Fallback jika scan gagal / Aset tidak ditemukan --}}
                 <input type="hidden" name="title" value="Lainnya">
                 @endif
 

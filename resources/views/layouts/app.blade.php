@@ -22,7 +22,7 @@
 </head>
 
 <body class="font-sans antialiased">
-    <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div class="min-h-screen bg-slat-50">
 
         {{-- LOGIC: Karena sudah didefinisikan di @props, kita bisa langsung cek boolean-nya --}}
         @if (!$hideNav)

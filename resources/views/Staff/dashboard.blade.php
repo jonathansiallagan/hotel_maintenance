@@ -1,41 +1,81 @@
 <x-app-layout :hideNav="true">
 
     @push('styles')
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
+        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+        <style>
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
 
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+
+            #reader__dashboard_section_csr span,
+            #reader__dashboard_section_swaplink,
+
+            #qr-shaded-region {
+                display: none !important;
+            }
+
+            #reader video {
+                object-fit: cover;
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            @keyframes scanMove {
+                0% {
+                    top: 0%;
+                    opacity: 0;
+                }
+
+                10% {
+                    opacity: 1;
+                }
+
+                90% {
+                    opacity: 1;
+                }
+
+                100% {
+                    top: 100%;
+                    opacity: 0;
+                }
+            }
+
+            .animate-scanner-line {
+                animation: scanMove 2s linear infinite;
+            }
+        </style>
     @endpush
 
     {{-- WRAPPER UTAMA --}}
     <div class="relative max-w-md mx-auto min-h-screen flex flex-col bg-slate-50 text-slate-800 shadow-2xl">
 
-        {{-- HEADER (Sama seperti sebelumnya) --}}
-        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 pt-10 pb-24 px-6 rounded-b-[2.5rem] shadow-lg relative z-10">
+        {{-- HEADER --}}
+        <header
+            class="bg-gradient-to-r from-blue-600 to-indigo-700 pt-10 pb-24 px-6 rounded-b-[2.5rem] shadow-lg relative z-10">
             <div class="flex justify-between items-start">
                 <div>
                     @php
-                    $hour = date('H');
-                    $greeting = ($hour < 11) ? "Selamat Pagi" : (($hour < 15) ? "Selamat Siang" : (($hour < 19) ? "Selamat Sore" : "Selamat Malam" ));
-                        @endphp
-                        <p class="text-blue-100 text-sm font-medium mb-1">{{ $greeting }},</p>
-                        <h1 class="text-2xl font-bold text-white mb-1">{{ Auth::user()->name }}</h1>
-                        <div class="inline-flex items-center bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                            <span class="text-xs text-white font-medium tracking-wide">
-                                {{ Auth::user()->department ?? 'Staff' }}
-                            </span>
-                        </div>
+                        $hour = date('H');
+                        $greeting = ($hour < 11) ? "Selamat Pagi" : (($hour < 15) ? "Selamat Siang" : (($hour < 19) ? "Selamat Sore" : "Selamat Malam"));
+                    @endphp
+                    <p class="text-blue-100 text-sm font-medium mb-1">{{ $greeting }},</p>
+                    <h1 class="text-2xl font-bold text-white mb-1">{{ Auth::user()->name }}</h1>
+                    <div class="inline-flex items-center bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                        <span class="text-xs text-white font-medium tracking-wide">
+                            {{ Auth::user()->department ?? 'Staff' }}
+                        </span>
+                    </div>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="bg-white/20 w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-white/30 transition">
+                    <button type="submit"
+                        class="bg-white/20 w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-white/30 transition">
                         <i class="fa-solid fa-power-off"></i>
                     </button>
                 </form>
@@ -53,63 +93,67 @@
         </header>
 
         {{-- MAIN CONTENT --}}
-        {{-- Padding bottom (pb-24) diperbesar agar konten terbawah tidak tertutup Footer --}}
         <main class="flex-1 px-4 -mt-16 pb-28 overflow-y-auto z-20 scrollbar-hide">
             <div class="flex justify-between items-center mb-4 px-2">
                 <h2 class="text-lg font-bold text-slate-800">Laporan Saya</h2>
-                <a href="{{ route('staff.tickets.history') }}" class="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">
+                <a href="{{ route('staff.tickets.history') }}"
+                    class="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">
                     Lihat Semua
                 </a>
             </div>
 
             <div class="space-y-4">
                 @forelse($tickets as $ticket)
-                <a href="{{ route('staff.tickets.show', $ticket->id) }}" class="block bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow active:scale-[0.98] transition-transform cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $ticket->ticket_number }}</span>
-                        @php
-                        $badgeColor = match($ticket->status) {
-                        'open' => 'bg-orange-100 text-orange-700 border-orange-200',
-                        'in_progress' => 'bg-blue-100 text-blue-700 border-blue-200',
-                        'resolved' => 'bg-green-100 text-green-700 border-green-200',
-                        default => 'bg-gray-100 text-gray-700'
-                        };
-                        $icon = match($ticket->status) {
-                        'open' => 'fa-clock',
-                        'in_progress' => 'fa-spinner',
-                        'resolved' => 'fa-check-circle',
-                        default => 'fa-circle'
-                        };
-                        @endphp
-                        <span class="flex items-center px-2.5 py-1 rounded-full text-xs font-medium border {{ $badgeColor }}">
-                            <i class="fa-solid {{ $icon }} mr-1.5 text-[10px]"></i> {{ ucfirst($ticket->status) }}
-                        </span>
-                    </div>
-                    <h3 class="font-bold text-slate-800 mb-1 line-clamp-1">{{ $ticket->title }}</h3>
-                    <div class="flex items-center text-slate-500 text-xs mb-3">
-                        <i class="fa-solid fa-location-dot mr-1.5 text-slate-400"></i>
-                        <span class="line-clamp-1">{{ $ticket->asset->location->name ?? '-' }}</span>
-                    </div>
-                </a>
+                    <a href="{{ route('staff.tickets.show', $ticket->id) }}"
+                        class="block bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow active:scale-[0.98] transition-transform cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <span
+                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $ticket->ticket_number }}</span>
+                            @php
+                                $badgeColor = match ($ticket->status) {
+                                    'open' => 'bg-orange-100 text-orange-700 border-orange-200',
+                                    'in_progress' => 'bg-blue-100 text-blue-700 border-blue-200',
+                                    'resolved' => 'bg-green-100 text-green-700 border-green-200',
+                                    default => 'bg-gray-100 text-gray-700'
+                                };
+                                $icon = match ($ticket->status) {
+                                    'open' => 'fa-clock',
+                                    'in_progress' => 'fa-spinner',
+                                    'resolved' => 'fa-check-circle',
+                                    default => 'fa-circle'
+                                };
+                            @endphp
+                            <span
+                                class="flex items-center px-2.5 py-1 rounded-full text-xs font-medium border {{ $badgeColor }}">
+                                <i class="fa-solid {{ $icon }} mr-1.5 text-[10px]"></i> {{ ucfirst($ticket->status) }}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 mb-1 line-clamp-1">{{ $ticket->title }}</h3>
+                        <div class="flex items-center text-slate-500 text-xs mb-3">
+                            <i class="fa-solid fa-location-dot mr-1.5 text-slate-400"></i>
+                            <span class="line-clamp-1">{{ $ticket->asset->location->name ?? '-' }}</span>
+                        </div>
+                    </a>
                 @empty
-                <div class="text-center py-10 opacity-60">
-                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fa-regular fa-folder-open text-2xl text-slate-400"></i>
+                    <div class="text-center py-10 opacity-60">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-regular fa-folder-open text-2xl text-slate-400"></i>
+                        </div>
+                        <p class="text-sm text-slate-500">Belum ada laporan.</p>
                     </div>
-                    <p class="text-sm text-slate-500">Belum ada laporan.</p>
-                </div>
                 @endforelse
             </div>
         </main>
 
-        {{-- === FOOTER NAVIGATION (BERANDA - SCAN - RIWAYAT) === --}}
-        {{-- Fixed position di bawah layar, max-width mengikuti container aplikasi --}}
-        <div class="fixed bottom-0 w-full max-w-md z-40 bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] h-20 rounded-t-2xl">
+        {{-- === FOOTER NAVIGATION === --}}
+        <div
+            class="fixed bottom-0 w-full max-w-md z-40 bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] h-20 rounded-t-2xl">
 
             <div class="grid grid-cols-3 h-full items-center">
 
                 {{-- 1. BERANDA (Kiri) --}}
-                <a href="{{ route('staff.dashboard') }}" class="flex flex-col items-center justify-center h-full text-blue-600 cursor-pointer hover:bg-slate-50 rounded-tl-2xl">
+                <a href="{{ route('staff.dashboard') }}"
+                    class="flex flex-col items-center justify-center h-full text-blue-600 cursor-pointer hover:bg-slate-50 rounded-tl-2xl">
                     <i class="fa-solid fa-house text-xl mb-1"></i>
                     <span class="text-[10px] font-bold">Beranda</span>
                 </a>
@@ -126,8 +170,10 @@
                 </div>
 
                 {{-- 3. RIWAYAT (Kanan) --}}
-                <a href="{{ route('staff.tickets.history') }}" class="flex flex-col items-center justify-center h-full text-slate-400 hover:text-blue-600 cursor-pointer hover:bg-slate-50 transition rounded-tr-2xl group">
-                    <i class="fa-regular fa-file-lines text-xl mb-1 group-hover:-translate-y-0.5 transition-transform"></i>
+                <a href="{{ route('staff.tickets.history') }}"
+                    class="flex flex-col items-center justify-center h-full text-slate-400 hover:text-blue-600 cursor-pointer hover:bg-slate-50 transition rounded-tr-2xl group">
+                    <i
+                        class="fa-regular fa-file-lines text-xl mb-1 group-hover:-translate-y-0.5 transition-transform"></i>
                     <span class="text-[10px] font-medium">Riwayat</span>
                 </a>
 
@@ -137,7 +183,8 @@
     </div>
 
     {{-- MODAL SCANNER & SCRIPT (Tetap sama) --}}
-    <div id="scannerModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="scannerModal"
+        class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
 
         <div class="relative w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
 
@@ -159,27 +206,35 @@
                 <div id="reader" class="w-full h-full object-cover"></div>
 
                 {{-- Loading State dengan Animasi --}}
-                <div id="scan-loading" class="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-10">
+                <div id="scan-loading"
+                    class="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-10">
                     <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-3"></i>
                     <p class="text-xs font-medium tracking-wide animate-pulse">MEMUAT KAMERA...</p>
                 </div>
 
                 {{-- Overlay Garis Scan --}}
-                <div id="scan-overlay" class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center hidden">
+                <div id="scan-overlay"
+                    class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center hidden">
                     <div class="relative w-48 h-48">
 
                         {{-- Border + shaded outside using large box-shadow (keperluan overlay hole) --}}
-                        <div class="absolute inset-0 rounded-lg border-2 border-blue-400 bg-transparent" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                        <div class="absolute inset-0 rounded-lg border-2 border-blue-400 bg-transparent"
+                            style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
                         </div>
 
                         {{-- Corner accents --}}
-                        <span class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
-                        <span class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
-                        <span class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
-                        <span class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span
+                            class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span
+                            class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span
+                            class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
+                        <span
+                            class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500 -translate-x-0 -translate-y-0"></span>
 
                         {{-- Scanner line (animated) --}}
-                        <div class="absolute left-0 right-0 h-0.5 bg-red-500 animate-scanner-line" style="box-shadow: 0 0 10px rgba(239,68,68,1);"></div>
+                        <div class="absolute left-0 right-0 h-0.5 bg-red-500 animate-scanner-line"
+                            style="box-shadow: 0 0 10px rgba(239,68,68,1);"></div>
                     </div>
                 </div>
             </div>
@@ -193,157 +248,116 @@
         </div>
     </div>
 
-    @push('styles')
-    <style>
-        #reader__dashboard_section_csr span,
-        #reader__dashboard_section_swaplink,
-
-        #qr-shaded-region {
-            display: none !important;
-        }
-
-        #reader video {
-            object-fit: cover;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 0 !important;
-        }
-
-        @keyframes scanMove {
-            0% {
-                top: 0%;
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 1;
-            }
-
-            90% {
-                opacity: 1;
-            }
-
-            100% {
-                top: 100%;
-                opacity: 0;
-            }
-        }
-
-        .animate-scanner-line {
-            animation: scanMove 2s linear infinite;
-        }
-    </style>
-
     @push('scripts')
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-        let html5QrcodeScanner;
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+            let html5QrcodeScanner;
 
-        function startScanner() {
-            document.getElementById('scannerModal').classList.remove('hidden');
-            document.getElementById('scan-loading').style.display = 'block';
+            function startScanner() {
+                document.getElementById('scannerModal').classList.remove('hidden');
+                document.getElementById('scan-loading').style.display = 'block';
 
-            document.getElementById('scan-overlay').classList.add('hidden');
+                document.getElementById('scan-overlay').classList.add('hidden');
 
-            if (!document.getElementById('reader')) {
-                return;
-            }
+                if (!document.getElementById('reader')) {
+                    return;
+                }
 
-            if (html5QrcodeScanner) {
-                try {
-                    html5QrcodeScanner.clear();
-                } catch (e) {}
-            }
+                if (html5QrcodeScanner) {
+                    try {
+                        html5QrcodeScanner.clear();
+                    } catch (e) { }
+                }
 
-            html5QrcodeScanner = new Html5Qrcode("reader");
+                html5QrcodeScanner = new Html5Qrcode("reader");
 
-            const config = {
-                fps: 20,
-                qrbox: {
-                    width: 180,
-                    height: 180
-                },
-                aspectRatio: 1.0
-            };
-
-            html5QrcodeScanner.start({
-                        facingMode: "environment"
+                const config = {
+                    fps: 20,
+                    qrbox: {
+                        width: 180,
+                        height: 180
                     },
+                    aspectRatio: 1.0
+                };
+
+                html5QrcodeScanner.start({
+                    facingMode: "environment"
+                },
                     config,
                     (decodedText, decodedResult) => {
                         onScanSuccess(decodedText, decodedResult);
                     },
-                    (errorMessage) => {}
+                    (errorMessage) => { }
                 )
-                .then(() => {
-                    document.getElementById('scan-loading').style.display = 'none';
-                    document.getElementById('scan-overlay').classList.remove('hidden');
-                })
-                .catch(err => {
-                    alert("Kamera Error: " + err);
-                    stopScanner();
-                });
-        }
+                    .then(() => {
+                        document.getElementById('scan-loading').style.display = 'none';
+                        document.getElementById('scan-overlay').classList.remove('hidden');
+                    })
+                    .catch(err => {
+                        alert("Kamera Error: " + err);
+                        stopScanner();
+                    });
+            }
 
-        function stopScanner() {
-            document.getElementById('scannerModal').classList.add('hidden');
-            document.getElementById('scan-overlay').classList.add('hidden');
+            function stopScanner() {
+                document.getElementById('scannerModal').classList.add('hidden');
+                document.getElementById('scan-overlay').classList.add('hidden');
 
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    console.log("Scanner berhenti.");
-                    html5QrcodeScanner.clear();
-                }).catch(err => {
-                    console.warn("Stop gagal:", err);
-                    try {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => {
+                        console.log("Scanner berhenti.");
                         html5QrcodeScanner.clear();
-                    } catch (e) {}
-                });
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    html5QrcodeScanner.clear();
-                }).catch(() => {});
+                    }).catch(err => {
+                        console.warn("Stop gagal:", err);
+                        try {
+                            html5QrcodeScanner.clear();
+                        } catch (e) { }
+                    });
+                }
             }
 
-            document.getElementById('scannerModal').classList.add('hidden');
+            function onScanSuccess(decodedText, decodedResult) {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => {
+                        html5QrcodeScanner.clear();
+                    }).catch(() => { });
+                }
 
-            let identifier = decodedText;
-            if (decodedText.includes('asset_uuid=')) {
-                const urlParams = new URLSearchParams(decodedText.split('?')[1]);
-                identifier = urlParams.get('asset_uuid');
+                document.getElementById('scannerModal').classList.add('hidden');
+
+                let identifier = decodedText;
+                if (decodedText.includes('asset_uuid=')) {
+                    const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+                    identifier = urlParams.get('asset_uuid');
+                }
+
+                const routeTemplate = "{{ route('scan.asset.json', ['identifier' => 'PLACEHOLDER_ID']) }}";
+
+                const fetchUrl = routeTemplate.replace('PLACEHOLDER_ID', identifier);
+
+                console.log("URL Request:", fetchUrl);
+
+                fetch(fetchUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("HTTP Status: " + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const baseUrl = "{{ route('staff.tickets.create') }}";
+                            window.location.href = `${baseUrl}?asset_id=${data.id}`;
+                        } else {
+                            alert('Aset tidak dikenal: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Fetch Error:", error);
+                        alert("Gagal menghubungi server. Cek Console Log.");
+                    });
             }
-
-            const routeTemplate = "{{ route('scan.asset.json', ['identifier' => 'PLACEHOLDER_ID']) }}";
-
-            const fetchUrl = routeTemplate.replace('PLACEHOLDER_ID', identifier);
-
-            console.log("URL Request:", fetchUrl);
-
-            fetch(fetchUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("HTTP Status: " + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        const baseUrl = "{{ route('staff.tickets.create') }}";
-                        window.location.href = `${baseUrl}?asset_id=${data.id}`;
-                    } else {
-                        alert('Aset tidak dikenal: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error("Fetch Error:", error);
-                    alert("Gagal menghubungi server. Cek Console Log.");
-                });
-        }
-    </script>
+        </script>
     @endpush
 
 </x-app-layout>

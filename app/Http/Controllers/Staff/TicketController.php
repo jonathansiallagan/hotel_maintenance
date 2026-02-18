@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Ticket;
 use App\Models\Asset;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -18,21 +19,20 @@ class TicketController extends Controller
      */
     public function index()
     {
+        // 1. Ambil HANYA tiket yang sedang AKTIF (Tugas Staff saat ini)
         $tickets = Ticket::where('user_id', Auth::id())
             ->whereIn('status', ['open', 'in_progress', 'pending_sparepart'])
             ->latest()
             ->get();
 
-        // Hitung stats (opsional)
         $stats = [
             'process' => Ticket::where('user_id', Auth::id())->where('status', 'in_progress')->count(),
             'done'    => Ticket::where('user_id', Auth::id())->where('status', 'resolved')->count(),
         ];
 
-        // Jika scan aset (scan logic)
         $scannedAsset = null;
 
-        return view('staff.dashboard', compact('tickets', 'stats', 'scannedAsset'));
+        return view('Staff.dashboard', compact('tickets', 'stats', 'scannedAsset'));
     }
 
     /**
@@ -40,6 +40,7 @@ class TicketController extends Controller
      */
     public function create(Request $request)
     {
+        // Logika Scan
         $scannedAsset = null;
 
         if ($request->has('asset_uuid')) {
@@ -53,8 +54,10 @@ class TicketController extends Controller
                 ->find($request->query('asset_id'));
         }
 
+        //logika kategori lainnya
         $commonIssues = ['Lainnya'];
 
+        // 1. Default common issues (Kategori Umum)
         if ($scannedAsset && $scannedAsset->category) {
             $code = $scannedAsset->category->code;
 
@@ -67,9 +70,15 @@ class TicketController extends Controller
             };
         }
 
+        // 2. Ambil Histori Masalah "Lainnya" dari Database Aset untuk Dropdown
+        $historyIssues = [];
+        if (isset($scannedAsset) && !empty($scannedAsset->problem_history)) {
+            $historyIssues = array_diff($scannedAsset->problem_history, $commonIssues);
+        }
+
         $allAssets = Asset::all();
 
-        return view('staff.tickets.create', compact('scannedAsset', 'commonIssues', 'allAssets'));
+        return view('Staff.tickets.create', compact('scannedAsset', 'commonIssues', 'historyIssues', 'allAssets'));
     }
 
     /**
@@ -77,13 +86,77 @@ class TicketController extends Controller
      */
     public function store(Request $request)
     {
-        // A. Validasi Input (Security Check)
+        // A. Validasi Input (Security Check & Filter Kata Kotor)
         $request->validate([
             'asset_id'              => 'required|exists:assets,id',
-            'title'                 => 'required|string|max:255',
             'priority'              => 'required|in:low,medium,high',
-            'description'           => 'nullable|string',
             'photo_evidence_before' => 'required|image|mimes:jpeg,png,jpg|max:10240',
+            'title'                 => [
+                'required',
+                'string',
+                'max:255',
+                // --- CUSTOM RULE: FILTER KATA KOTOR (Judul) ---
+                function ($attribute, $value, $fail) {
+                    $blackList = [
+                        'anjing',
+                        'babi',
+                        'bangsat',
+                        'tolol',
+                        'goblok',
+                        'bodoh',
+                        'sialan',
+                        'kontol',
+                        'memek',
+                        'jembut',
+                        'ngentot',
+                        'bego',
+                        'pantek',
+                        'asu',
+                        'bajingan',
+                        'tai',
+                        'kunyuk'
+                    ];
+                    $inputLower = strtolower($value);
+                    foreach ($blackList as $badWord) {
+                        if (str_contains($inputLower, $badWord)) {
+                            $fail('Judul masalah mengandung kata yang tidak pantas.');
+                            return;
+                        }
+                    }
+                },
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                // --- CUSTOM RULE: FILTER KATA KOTOR (Deskripsi) ---
+                function ($attribute, $value, $fail) {
+                    if (!$value) return;
+                    $blackList = [
+                        'anjing',
+                        'babi',
+                        'bangsat',
+                        'tolol',
+                        'goblok',
+                        'bodoh',
+                        'sialan',
+                        'kontol',
+                        'memek',
+                        'jembut',
+                        'ngentot',
+                        'bego',
+                        'pantek',
+                        'asu',
+                        'bajingan'
+                    ];
+                    $inputLower = strtolower($value);
+                    foreach ($blackList as $badWord) {
+                        if (str_contains($inputLower, $badWord)) {
+                            $fail('Deskripsi mengandung kata yang tidak pantas.');
+                            return;
+                        }
+                    }
+                },
+            ],
         ], [
             'asset_id.required' => 'Aset tidak valid.',
             'title.required' => 'Masalah harus dipilih.',
@@ -99,23 +172,48 @@ class TicketController extends Controller
         }
 
         // C. GENERATE NOMOR TIKET (Format: TIK-TAHUNBULAN-URUTAN)
-        $prefix = 'TIK-' . date('Ym') . '-';
+        $generatedTicketNumber = DB::transaction(function () {
+            $prefix = 'TIK-' . date('Ym') . '-';
 
-        // Cari tiket terakhir yang memiliki prefix bulan ini
-        $lastTicket = Ticket::where('ticket_number', 'like', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->first();
+            // Cari tiket terakhir yang memiliki prefix bulan ini
+            $lastTicket = Ticket::where('ticket_number', 'like', $prefix . '%')
+                ->orderBy('id', 'desc')
+                ->lockForUpdate()
+                ->first();
 
-        // Hitung nomor urut
-        if ($lastTicket) {
-            $lastNumber = intval(substr($lastTicket->ticket_number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
+            // Hitung nomor urut
+            if ($lastTicket) {
+                $lastNumber = intval(substr($lastTicket->ticket_number, -4));
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+
+            // Gabungkan prefix dengan nomor urut
+            return $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        });
+
+        // --- TAMBAHAN: LOGIKA HYBRID LEARNING (Menyimpan Kategori Baru) ---
+        $asset = Asset::findOrFail($request->asset_id);
+
+        // Ambil histori lama (array)
+        $currentHistory = $asset->problem_history;
+        if (!is_array($currentHistory)) {
+            $currentHistory = [];
         }
 
-        // Gabungkan prefix dengan nomor urut (dipadding 0 di depan, misal: 0001)
-        $generatedTicketNumber = $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        // Cek duplikat (Case Insensitive)
+        $inputTitle = $request->title;
+        $inputLower = strtolower($inputTitle);
+        $historyLower = array_map('strtolower', $currentHistory);
+
+        // Jika tidak ada di history DAN jumlah history masih di bawah 10
+        if (!in_array($inputLower, $historyLower) && count($currentHistory) < 10) {
+            $currentHistory[] = $inputTitle;
+            $asset->update(['problem_history' => $currentHistory]);
+            $asset->save();
+        }
+        // ------------------------------------------------------------------
 
         // D. Simpan ke Database
         Ticket::create([
@@ -137,17 +235,22 @@ class TicketController extends Controller
     /**
      * Menampilkan Halaman Riwayat
      */
-    public function history()
+    public function history(Request $request)
     {
-        $user = Auth::user();
+        // 1. Mulai Query
+        $query = Ticket::where('user_id', Auth::id())
+            ->with('asset');
 
-        // Ambil semua tiket milik user, urutkan dari yang terbaru
-        $tickets = Ticket::where('user_id', $user->id)
-            ->with('asset')
-            ->latest()
-            ->get();
+        // 2. LOGIKA FILTER
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
 
-        return view('staff.tickets.history', compact('tickets'));
+        // 3. Eksekusi Query
+        $tickets = $query->latest()->get();
+
+        // 4. Return View History
+        return view('Staff.tickets.history', compact('tickets'));
     }
 
     /**
@@ -163,7 +266,7 @@ class TicketController extends Controller
         // 2. Load relasi yang dibutuhkan
         $ticket->load(['asset.location', 'user', 'technician']);
 
-        return view('staff.tickets.show', compact('ticket'));
+        return view('Staff.tickets.show', compact('ticket'));
     }
 
     public function verifyAsset($identifier)

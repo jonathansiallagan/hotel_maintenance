@@ -47,7 +47,7 @@ class SearchController extends Controller
                 $results[] = [
                     'id' => 'ticket-' . $ticket->id,    
                     'title' => $displayTitle,
-                    'url' => route('admin.tickets.show', $ticket->id),
+                    'url' => route('Admin.tickets.show', $ticket->id),
                     'type' => 'Tiket',
                     'status' => $ticket->ticket_number,
                 ];
@@ -65,7 +65,7 @@ class SearchController extends Controller
                 $results[] = [
                     'id' => 'asset-' . $asset->id,
                     'title' => $asset->name,
-                    'url' => route('admin.assets.show', $asset->id) . '#asset-' . $asset->id,
+                    'url' => route('Admin.assets.show', $asset->id) . '#asset-' . $asset->id,
                     'type' => 'Aset',
                     'status' => $asset->serial_number ?? ($asset->status ?? 'No S/N'),
                 ];
@@ -85,7 +85,7 @@ class SearchController extends Controller
                 $results[] = [
                     'id' => 'part-' . $part->id,
                     'title' => $part->name,
-                    'url' => route('admin.spareparts.index', ['page' => $page]) . '#part-' . $part->id,
+                    'url' => route('Admin.spareparts.index', ['page' => $page]) . '#part-' . $part->id,
                     'type' => 'Sparepart',
                     'status' => 'SKU: ' . ($part->sku_code ?? '-') . ' • Stok: ' . ($part->stock ?? 0),
                 ];
@@ -105,7 +105,7 @@ class SearchController extends Controller
                 $results[] = [
                     'id' => 'user-' . $user->id,
                     'title' => $user->name,
-                    'url' => route('admin.users.index', ['page' => $page]) . '#user-' . $user->id,
+                    'url' => route('Admin.users.index', ['page' => $page]) . '#user-' . $user->id,
                     'type' => 'Pengguna',
                     'status' => ucfirst($roleName),
                 ];
