@@ -8,30 +8,75 @@ use App\Models\Ticket;
 use App\Models\Asset;
 use App\Models\User;
 use App\Models\Sparepart;
+use App\Models\Location;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // 1. Ambil Statistik Ringkas
+        // =========================================================
+        // 1. AMBIL STATISTIK RINGKAS (KODE LAMA)
+        // =========================================================
         $totalTickets = Ticket::count();
         $openTickets = Ticket::where('status', 'open')->count();
         $processTickets = Ticket::whereIn('status', ['in_progress', 'pending_sparepart'])->count();
         $doneTickets = Ticket::where('status', 'resolved')->count();
 
-        // 2. Ambil Tiket Terbaru (5 teratas)
-        // Pastikan relasi 'user', 'technician', 'asset' ada di model Ticket
-        $recentTickets = Ticket::with(['user', 'technician', 'asset'])
+        $recentTickets = Ticket::with(['user', 'technician', 'asset.location'])
             ->latest()
             ->take(5)
             ->get();
 
-        // 3. Statistik Aset & Teknisi
         $totalAssets = Asset::count();
         $totalTechnicians = User::where('role', 'technician')->count();
         $totalUsers = User::count();
 
+
+        // =========================================================
+        // 2. TAMBAHAN LOGIKA RCA ANALYTICS (DASHBOARD CERDAS)
+        // =========================================================
+
+        $filterMonth = $request->input('month', 'all');
+        $filterLocation = $request->input('location_id', 'all');
+
+        $rcaQuery = Ticket::where('status', 'resolved')->whereNotNull('root_cause');
+
+        if ($filterMonth != 'all') {
+            $rcaQuery->whereMonth('completed_at', $filterMonth)
+                ->whereYear('completed_at', date('Y'));
+        }
+
+        if ($filterLocation != 'all') {
+            $rcaQuery->whereHas('asset', function ($q) use ($filterLocation) {
+                $q->where('location_id', $filterLocation);
+            });
+        }
+
+        $rcaTickets = $rcaQuery->with('asset.category')->get();
+
+        $rcaData = [];
+        foreach ($rcaTickets as $ticket) {
+            $catName = $ticket->asset->category->name ?? 'Tanpa Kategori';
+            $cause = $ticket->root_cause;
+
+            if (!isset($rcaData[$catName])) $rcaData[$catName] = [];
+            if (!isset($rcaData[$catName][$cause])) $rcaData[$catName][$cause] = 0;
+
+            $rcaData[$catName][$cause]++;
+        }
+
+        $topRcaData = collect($rcaData)->sortByDesc(function ($causes) {
+            return array_sum($causes);
+        })->take(3)->toArray();
+
+        $locations = Location::all();
+
+
+        // =========================================================
+        // 3. KIRIM SEMUA DATA KE VIEW
+        // =========================================================
         return view('Admin.dashboard', compact(
+            // Data Lama
             'totalTickets',
             'openTickets',
             'processTickets',
@@ -39,13 +84,18 @@ class DashboardController extends Controller
             'recentTickets',
             'totalAssets',
             'totalTechnicians',
-            'totalUsers'
+            'totalUsers',
+            // Data Baru (RCA)
+            'rcaData',
+            'topRcaData',
+            'locations',
+            'filterMonth',
+            'filterLocation'
         ));
     }
 
     public function notifications()
     {
-        // Get recent notifications - tickets that need attention
         $urgentTickets = Ticket::where('status', 'open')
             ->where('priority', 'high')
             ->with(['user', 'asset'])
@@ -86,9 +136,6 @@ class DashboardController extends Controller
                 'color' => 'text-yellow-600',
             ];
         }
-
-        // Sort by created_at descending (berdasarkan string time diff mungkin kurang akurat, 
-        // idealnya sorting object collection sebelum loop, tapi untuk notif sederhana ini oke)
 
         return response()->json(['notifications' => $notifications]);
     }
