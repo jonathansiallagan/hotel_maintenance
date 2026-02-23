@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Maintenance</title>
+    <title>Laporan Corrective Maintenance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
