@@ -118,6 +118,26 @@
                             </div>
                         </div>
                         @endif
+
+                        @if($ticket->status === 'resolved' && $ticket->root_cause)
+                        <div class="mt-6 bg-gradient-to-br from-purple-50 to-white rounded-2xl p-5 border border-purple-100 shadow-sm">
+                            <div class="flex items-center gap-2 mb-4 border-b border-purple-100 pb-3">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-microscope"></i>
+                                </div>
+                                <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider">
+                                    Analisis Akar Masalah (RCA)
+                                </h3>
+                            </div>
+
+                            <div class="bg-white p-4 rounded-xl border border-purple-100 shadow-sm relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
+                                <p class="text-sm font-bold text-gray-800 leading-relaxed">
+                                    "{{ $ticket->root_cause }}"
+                                </p>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
 

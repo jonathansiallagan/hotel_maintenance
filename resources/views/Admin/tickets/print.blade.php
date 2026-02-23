@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiket #{{ $ticket->id }} - Hotel Maintenance</title>
     <style>
         @media print {
-            body { margin: 0; padding: 20px; }
-            .no-print { display: none; }
+            body {
+                margin: 0;
+                padding: 20px;
+            }
+
+            .no-print {
+                display: none;
+            }
         }
 
         body {
@@ -49,11 +56,30 @@
             text-transform: uppercase;
         }
 
-        .status-open { background: #fee2e2; color: #dc2626; }
-        .status-in_progress { background: #dbeafe; color: #2563eb; }
-        .status-pending_sparepart { background: #fef3c7; color: #d97706; }
-        .status-resolved { background: #d1fae5; color: #059669; }
-        .status-closed { background: #f3f4f6; color: #374151; }
+        .status-open {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-in_progress {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .status-pending_sparepart {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-resolved {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-closed {
+            background: #f3f4f6;
+            color: #374151;
+        }
 
         .section {
             margin-bottom: 18px;
@@ -161,14 +187,19 @@
         }
 
         @media screen {
-            .print-button { display: block; }
+            .print-button {
+                display: block;
+            }
         }
 
         @media print {
-            .print-button { display: none; }
+            .print-button {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <button onclick="window.print()" class="print-button no-print">Cetak</button>
@@ -209,6 +240,12 @@
             <div class="info-row">
                 <div class="info-label">Catatan Teknisi:</div>
                 <div class="info-value">{{ $ticket->technician_note }}</div>
+            </div>
+            @endif
+            @if($ticket->status === 'resolved' && $ticket->root_cause)
+            <div class="info-row">
+                <div class="info-label">Akar Masalah (RCA):</div>
+                <div class="info-value" style="font-weight: bold;">{{ $ticket->root_cause }}</div>
             </div>
             @endif
         </div>
@@ -327,4 +364,5 @@
     </div>
 
 </body>
+
 </html>
