@@ -29,7 +29,6 @@
 
                 {{-- TIMER LOGIC --}}
                 <div x-data="{
-                        {{-- UBAH DI SINI: Gunakan started_at agar mulai dari 0 saat diambil --}}
                         seconds: {{ $ticket->started_at ? (time() - strtotime($ticket->started_at)) : 0 }},
                         duration: '00:00:00',
 
@@ -125,11 +124,89 @@
 
                 {{-- Input: Note Tindakan --}}
                 <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Tindakan Perbaikan</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tindakan Perbaikan <span class="text-red-500">*</span></label>
                     <textarea name="technician_note" rows="3"
                         class="w-full rounded-xl border-gray-200 bg-gray-50 text-sm focus:bg-white focus:border-blue-500 focus:ring-blue-500 p-3 placeholder-gray-400 transition"
-                        placeholder="Deskripsikan perbaikan..." required>{{ old('technician_note', $ticket->technician_note) }}</textarea>
+                        placeholder="Deskripsikan perbaikan yang telah dilakukan..." required>{{ old('technician_note', $ticket->technician_note) }}</textarea>
                 </div>
+
+                {{-- ========================================================== --}}
+                {{-- TAMBAHAN: ROOT CAUSE ANALYSIS (HANYA MUNCUL JIKA HIGH)     --}}
+                {{-- ========================================================== --}}
+                @if($ticket->priority == 'high')
+                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200 shadow-sm">
+                    <div x-data="{ 
+                        rcaMode: '{{ old('rca_option') }}', 
+                        finalRca: '{{ old('root_cause') }}',
+                        manualRca: '',
+                        rcaList: {{ json_encode($historyRca ?? []) }},
+                        showRcaDropdown: false
+                    }" x-init="$watch('manualRca', value => finalRca = value)">
+
+                        <label class="block text-sm font-bold text-purple-800 mb-1">
+                            <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Akar Masalah (RCA)
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <p class="text-[10px] text-purple-600 mb-3 italic">Prioritas URGENT: Wajib disimpulkan.</p>
+
+                        {{-- Hidden Input untuk dikirim ke Controller --}}
+                        <input type="hidden" name="root_cause" x-model="finalRca">
+
+                        {{-- Pilihan RCA Utama --}}
+                        <div class="flex flex-col gap-2 mb-2">
+                            @foreach($commonRca as $rca)
+                            <label class="cursor-pointer">
+                                <input type="radio" name="rca_option" value="{{ $rca }}" class="hidden"
+                                    @click="rcaMode = 'common'; finalRca = '{{ $rca }}'; manualRca = ''"
+                                    {{ old('root_cause') == $rca ? 'checked' : '' }}>
+                                <div class="px-4 py-3 rounded-xl border text-xs font-bold transition-all shadow-sm"
+                                    :class="finalRca === '{{ $rca }}' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-100'">
+                                    {{ $rca }}
+                                </div>
+                            </label>
+                            @endforeach
+
+                            {{-- Opsi Lainnya --}}
+                            <label class="cursor-pointer">
+                                <input type="radio" name="rca_option" value="Lainnya" class="hidden"
+                                    @click="rcaMode = 'manual'; finalRca = manualRca">
+                                <div class="px-4 py-3 rounded-xl border text-xs font-bold transition-all shadow-sm"
+                                    :class="rcaMode === 'manual' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-100'">
+                                    + Masalah Lainnya...
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Input Hybrid RCA (Muncul jika pilih Lainnya) --}}
+                        <div x-show="rcaMode === 'manual'" x-transition class="mt-2 relative">
+                            <div class="relative">
+                                <input type="text" x-model="manualRca"
+                                    @focus="showRcaDropdown = true"
+                                    @click.away="showRcaDropdown = false"
+                                    class="w-full pl-4 pr-10 py-3 rounded-xl border border-purple-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none text-sm bg-white"
+                                    placeholder="Ketik akar masalah baru..." autocomplete="off">
+
+                                <button type="button" @click="showRcaDropdown = !showRcaDropdown"
+                                    class="absolute inset-y-0 right-0 px-4 flex items-center text-purple-500">
+                                    <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="showRcaDropdown ? 'rotate-180' : ''"></i>
+                                </button>
+                            </div>
+
+                            {{-- Dropdown Riwayat RCA --}}
+                            <div x-show="showRcaDropdown && rcaList.length > 0" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                                <template x-for="item in rcaList" :key="item">
+                                    <div @click="manualRca = item; showRcaDropdown = false"
+                                        class="px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 cursor-pointer border-b border-gray-50 transition-colors">
+                                        <span x-text="item"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                @endif
+                {{-- ========================================================== --}}
 
                 {{-- Input: Material --}}
                 <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm" x-data="{ rows: [] }">

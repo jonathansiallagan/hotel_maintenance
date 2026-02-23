@@ -40,21 +40,32 @@ class JobController extends Controller
 
     public function show($id)
     {
-        $ticket = \App\Models\Ticket::with(['asset.location', 'spareparts'])->findOrFail($id);
+        $ticket = Ticket::with(['asset.location', 'spareparts'])->findOrFail($id);
 
         if ($ticket->status == 'resolved') {
-            return redirect()->route('Technician.dashboard')
+            return redirect()->route('technician.dashboard')
                 ->with('error', 'Tiket ini sudah diselesaikan dan terkunci.');
         }
 
-        $spareparts = \App\Models\Sparepart::where('stock', '>', 0)->get();
+        $spareparts = Sparepart::where('stock', '>', 0)->get();
 
-        return view('Technician.jobs.show', compact('ticket', 'spareparts'));
+        $commonRca = [
+            'Usia Pakai / Aus Alami',
+            'Kurang Perawatan / Kotor',
+            'Human Error / Kelalaian Tamu',
+            'Faktor Eksternal (Listrik/Cuaca/Air)'
+        ];
+
+        $historyRca = $ticket->asset->category->rca_history ?? [];
+        $historyRca = array_diff($historyRca, $commonRca);
+        // ----------------------------------------------
+
+        return view('Technician.jobs.show', compact('ticket', 'spareparts', 'commonRca', 'historyRca'));
     }
 
     public function update(Request $request, $id)
     {
-        $ticket = \App\Models\Ticket::findOrFail($id);
+        $ticket = Ticket::findOrFail($id);
         $action = $request->input('action');
 
         // Cek jika tiket yang mau diambil ternyata sudah selesai (safety check)
@@ -64,9 +75,8 @@ class JobController extends Controller
 
         // --- BAGIAN LOGIKA PENGAMBILAN TIKET (TAKE) ---
         if ($action == 'take') {
-
             // 1. Cek jumlah tiket yang sedang dipegang teknisi saat ini
-            $myTasks = \App\Models\Ticket::where('technician_id', Auth::id())
+            $myTasks = Ticket::where('technician_id', Auth::id())
                 ->whereIn('status', ['in_progress', 'pending_sparepart'])
                 ->get();
 
@@ -92,7 +102,6 @@ class JobController extends Controller
                 'started_at' => now(),
             ]);
 
-            // Redirect ke tab 'mytask' agar teknisi langsung melihat tiket yang baru diambil
             return redirect()->route('technician.dashboard', ['tab' => 'mytask'])
                 ->with('success', 'Tiket berhasil diambil!');
         }
@@ -118,20 +127,30 @@ class JobController extends Controller
 
             // B. JIKA MEMILIH SELESAI (RESOLVED)
             if ($status == 'resolved') {
-                $request->validate([
-                    'photo_after' => 'required|image|max:10240', // Saya naikkan jadi 10MB biar aman
+
+                // --- ATURAN VALIDASI DINAMIS UNTUK RCA ---
+                $rules = [
+                    'photo_after' => 'required|image|max:10240',
                     'technician_note' => 'required',
-                ], [
+                ];
+
+                // Wajibkan isi RCA hanya jika tiket HIGH/URGENT
+                if ($ticket->priority == 'high') {
+                    $rules['root_cause'] = 'required|string';
+                }
+
+                $request->validate($rules, [
                     'photo_after.required' => 'Foto bukti selesai wajib diupload!',
-                    'technician_note.required' => 'Catatan pengerjaan wajib diisi!'
+                    'technician_note.required' => 'Catatan pengerjaan wajib diisi!',
+                    'root_cause.required' => 'Akar masalah (RCA) WAJIB disimpulkan untuk tiket prioritas Urgent!'
                 ]);
+                // -----------------------------------------
 
                 // Logika pengurangan stok sparepart
                 if ($request->has('spareparts')) {
                     foreach ($request->spareparts as $part) {
                         if (!empty($part['id']) && !empty($part['qty'])) {
-                            $sparepartDB = \App\Models\Sparepart::find($part['id']);
-                            // Cek stok cukup atau tidak
+                            $sparepartDB = Sparepart::find($part['id']);
                             if ($sparepartDB && $sparepartDB->stock >= $part['qty']) {
                                 $sparepartDB->decrement('stock', $part['qty']);
                                 $ticket->spareparts()->attach($part['id'], ['quantity' => $part['qty']]);
@@ -140,12 +159,34 @@ class JobController extends Controller
                     }
                 }
 
+                // Upload Foto
                 $path = $request->file('photo_after')->store('evidence', 'public');
 
+                // --- LOGIKA BELAJAR RCA (SIMPAN KE ASET) ---
+                if ($ticket->priority == 'high' && $request->filled('root_cause')) {
+                    $category = $ticket->asset->category;
+                    $currentRca = $category->rca_history;
+                    if (!is_array($currentRca)) $currentRca = [];
+
+                    $inputLower = strtolower($request->root_cause);
+                    $historyLower = array_map('strtolower', $currentRca);
+                    $commonRcaLower = ['usia pakai / aus alami', 'kurang perawatan / kotor', 'human error / kelalaian tamu', 'faktor eksternal (listrik/cuaca/air)'];
+
+                    // Simpan RCA unik (Max 10)
+                    if (!in_array($inputLower, $historyLower) && !in_array($inputLower, $commonRcaLower) && count($currentRca) < 10) {
+                        $currentRca[] = $request->root_cause;
+                        // Pakai update langsung
+                        $category->update(['rca_history' => $currentRca]);
+                    }
+                }
+                // -------------------------------------------
+
+                // Simpan semuanya ke Tiket
                 $ticket->update([
                     'status' => 'resolved',
                     'photo_evidence_after' => $path,
                     'technician_note' => $request->technician_note,
+                    'root_cause' => $request->root_cause ?? null, // Simpan RCA ke tiket
                     'completed_at' => now(),
                 ]);
 

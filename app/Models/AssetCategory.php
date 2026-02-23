@@ -10,6 +10,10 @@ class AssetCategory extends Model
     use HasFactory;
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'rca_history' => 'array',
+    ];
+
     public function assets()
     {
         return $this->hasMany(Asset::class);

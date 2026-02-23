@@ -89,6 +89,7 @@ class TicketController extends Controller
         // Log aktivitas
         $ticket->activities()->create([
             'user_id' => Auth::id(),
+            'action' => 'status_updated',
             'description' => "Status tiket diubah dari '" . ucfirst(str_replace('_', ' ', $oldStatus)) . "' menjadi '" . ucfirst(str_replace('_', ' ', $newStatus)) . "'"
         ]);
 

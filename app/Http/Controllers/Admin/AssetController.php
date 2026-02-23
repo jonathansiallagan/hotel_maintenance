@@ -83,7 +83,7 @@ class AssetController extends Controller
         ]);
 
         // 4. Redirect kembali dengan pesan sukses
-        return redirect()->route('Admin.assets.index')
+        return redirect()->route('admin.assets.index')
             ->with('success', 'Aset berhasil ditambahkan!');
     }
 
