@@ -233,6 +233,12 @@
                         <div class="relative h-48 w-full">
                             <canvas id="pieChart{{ $loop->iteration }}"></canvas>
                         </div>
+                        <div class="border-t border-white/10 pt-4 mt-auto">
+                            <a href="{{ route('admin.maintenance.index', ['auto_create' => 'true']) }}"
+                                class="w-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition duration-200">
+                                <i class="fa-solid fa-calendar-check text-blue-300"></i> Buat Jadwal Perawatan
+                            </a>
+                        </div>
                     </div>
                 @endforeach
             </div>
