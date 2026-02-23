@@ -71,7 +71,10 @@
 
                         {{-- KOLOM 1: TIKET (No Tiket & Tanggal) --}}
                         <td class="px-4 py-3 border-r border-gray-50">
-                            <div class="font-bold text-gray-800">{{ $t->ticket_number }}</div>
+                            <a href="{{ route('admin.tickets.show', $t->id) }}"
+                                class="font-bold text-blue-600 hover:text-blue-800 hover:underline transition">
+                                {{ $t->ticket_number }}
+                            </a>
                             <div class="text-xs text-gray-500 mt-1">
                                 <i class="fa-regular fa-calendar mr-1"></i>
                                 {{ $t->created_at->format('d/m/Y') }}
