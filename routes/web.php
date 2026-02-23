@@ -92,6 +92,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])
                 ->name('dashboard');
 
+            // RUTE BARU: Ekspor RCA ke PDF
+            Route::get('/dashboard/export-rca', [AdminDashboardController::class, 'exportRca'])
+                ->name('dashboard.exportRca');
+
             // SEARCH & NOTIFICATIONS
             Route::get('/search', [SearchController::class, 'search'])->name('search');
             Route::get('/notifications', [AdminDashboardController::class, 'notifications'])->name('notifications');

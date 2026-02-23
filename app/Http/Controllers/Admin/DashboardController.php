@@ -9,6 +9,7 @@ use App\Models\Asset;
 use App\Models\User;
 use App\Models\Sparepart;
 use App\Models\Location;
+use \Barryvdh\DomPDF\Facade\Pdf;
 
 class DashboardController extends Controller
 {
@@ -92,6 +93,64 @@ class DashboardController extends Controller
             'filterMonth',
             'filterLocation'
         ));
+    }
+
+    public function exportRca(Request $request)
+    {
+        $filterMonth = $request->input('month', 'all');
+        $filterLocation = $request->input('location_id', 'all');
+
+        $rcaQuery = Ticket::where('status', 'resolved')->whereNotNull('root_cause');
+
+        if ($filterMonth != 'all') {
+            $rcaQuery->whereMonth('completed_at', $filterMonth)
+                ->whereYear('completed_at', date('Y'));
+        }
+
+        if ($filterLocation != 'all') {
+            $rcaQuery->whereHas('asset', function ($q) use ($filterLocation) {
+                $q->where('location_id', $filterLocation);
+            });
+        }
+
+        $rcaTickets = $rcaQuery->with(['asset.category', 'asset.location'])->get();
+
+        $rcaData = [];
+        $totalRcaTickets = 0;
+        foreach ($rcaTickets as $ticket) {
+            $catName = $ticket->asset->category->name ?? 'Tanpa Kategori';
+            $cause = $ticket->root_cause;
+
+            if (!isset($rcaData[$catName])) $rcaData[$catName] = [];
+            if (!isset($rcaData[$catName][$cause])) $rcaData[$catName][$cause] = 0;
+
+            $rcaData[$catName][$cause]++;
+            $totalRcaTickets++;
+        }
+
+        $monthLabel = 'Semua Bulan';
+        if ($filterMonth != 'all') {
+            $monthLabel = date('F Y', mktime(0, 0, 0, $filterMonth, 1));
+        }
+
+        $locationLabel = 'Semua Lokasi';
+        if ($filterLocation != 'all') {
+            $loc = Location::find($filterLocation);
+            if ($loc) $locationLabel = $loc->name;
+        }
+
+        $pdf = Pdf::loadView('Admin.reports.rca_pdf', compact(
+            'rcaData',
+            'totalRcaTickets',
+            'monthLabel',
+            'locationLabel',
+            'filterMonth',
+            'filterLocation'
+        ));
+
+        $fileName = 'RCA_Report_' . str_replace(' ', '_', $monthLabel) . '.pdf';
+
+        return $pdf->download($fileName);
     }
 
     public function notifications()
