@@ -168,6 +168,9 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $lowStockSpareparts = Sparepart::where('stock', '<=', 5)
+            ->get();
+
         $notifications = [];
 
         foreach ($urgentTickets as $ticket) {
@@ -193,6 +196,19 @@ class DashboardController extends Controller
                 'time' => $ticket->created_at->diffForHumans(),
                 'icon' => 'fa-clock',
                 'color' => 'text-yellow-600',
+            ];
+        }
+
+        foreach ($lowStockSpareparts as $part) {
+            $notifications[] = [
+                'id' => 'sp_' . $part->id,
+                'type' => 'low_stock',
+                'title' => 'Stok Menipis: ' . $part->name,
+                'message' => 'Sisa stok tinggal ' . $part->stock . ' ' . $part->unit . '. Segera restock!',
+                'url' => route('admin.spareparts.index', ['search' => $part->sku_code]),
+                'time' => 'Baru saja',
+                'icon' => 'fa-box-open',
+                'color' => 'text-orange-500',
             ];
         }
 
