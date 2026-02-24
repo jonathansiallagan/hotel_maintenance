@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
 use App\Models\Sparepart;
+use App\Models\SparepartLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -156,6 +157,17 @@ class TicketController extends Controller
         // Kurangi stok sparepart
         $sparepart->decrement('stock', $request->quantity);
 
+        // Log transaksi sparepart
+        SparepartLog::create([
+            'sparepart_id' => $sparepart->id,
+            'user_id' => Auth::id(),
+            'ticket_id' => $ticket->id,
+            'transaction_type' => 'out',
+            'quantity' => $request->quantity,
+            'balance' => $sparepart->fresh()->stock,
+            'description' => "Digunakan untuk perbaikan Tiket #{$ticket->ticket_number}"
+        ]);
+
         // Log aktivitas
         $ticket->activities()->create([
             'user_id' => Auth::id(),
@@ -187,6 +199,17 @@ class TicketController extends Controller
 
         // Kembalikan stok sparepart
         $sparepart->increment('stock', $quantity);
+
+        // Log transaksi pengembalian sparepart
+        SparepartLog::create([
+            'sparepart_id' => $sparepart->id,
+            'user_id' => Auth::id(),
+            'ticket_id' => $ticket->id,
+            'transaction_type' => 'in',
+            'quantity' => $quantity,
+            'balance' => $sparepart->fresh()->stock,
+            'description' => "Pengembalian stok dari pembatalan Tiket #{$ticket->ticket_number}"
+        ]);
 
         // Hapus dari tiket
         $ticket->spareparts()->detach($sparepartId);

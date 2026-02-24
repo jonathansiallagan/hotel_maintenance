@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Sparepart;
 use App\Models\SparepartCategory;
 use App\Models\AssetCategory;
+use App\Models\SparepartLog;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SparepartController extends Controller
 {
@@ -79,15 +81,28 @@ class SparepartController extends Controller
             $data['sku_code'] = $this->generateSku($data['name']);
         }
 
-        Sparepart::create($data);
+        $sparepart = Sparepart::create($data);
 
-        return redirect()->route('Admin.spareparts.index')
+        if ($sparepart->stock > 0) {
+            SparepartLog::create([
+                'sparepart_id' => $sparepart->id,
+                'user_id' => Auth::id(),
+                'transaction_type' => 'in',
+                'quantity' => $sparepart->stock,
+                'balance' => $sparepart->stock,
+                'description' => 'Stok awal saat barang didaftarkan'
+            ]);
+        }
+
+        return redirect()->route('admin.spareparts.index')
             ->with('success', 'Sparepart berhasil ditambahkan!');
     }
 
     public function show($id)
     {
-        $sparepart = Sparepart::findOrFail($id);
+        $sparepart = Sparepart::with(['category', 'logs' => function ($query) {
+            $query->latest();
+        }, 'logs.user', 'logs.ticket'])->findOrFail($id);
 
         return view('Admin.spareparts.show', compact('sparepart'));
     }
@@ -123,9 +138,22 @@ class SparepartController extends Controller
             $data['sku_code'] = $this->generateSku($data['name']);
         }
 
+        $oldStock = $sparepart->stock;
         $sparepart->update($data);
 
-        return redirect()->route('Admin.spareparts.index')
+        if ($oldStock != $sparepart->stock) {
+            $diff = $sparepart->stock - $oldStock;
+            SparepartLog::create([
+                'sparepart_id' => $sparepart->id,
+                'user_id' => Auth::id(),
+                'transaction_type' => $diff > 0 ? 'in' : 'out',
+                'quantity' => abs($diff),
+                'balance' => $sparepart->stock,
+                'description' => 'Penyesuaian stok manual oleh Admin'
+            ]);
+        }
+
+        return redirect()->route('admin.spareparts.index')
             ->with('success', 'Sparepart berhasil diperbarui!');
     }
 
@@ -135,13 +163,13 @@ class SparepartController extends Controller
 
         // Cek apakah sparepart sedang digunakan di ticket yang belum selesai
         if ($sparepart->tickets()->where('status', '!=', 'resolved')->exists()) {
-            return redirect()->route('Admin.spareparts.index')
+            return redirect()->route('admin.spareparts.index')
                 ->with('error', 'Sparepart tidak dapat dihapus karena sedang digunakan dalam ticket yang belum selesai.');
         }
 
         $sparepart->delete();
 
-        return redirect()->route('Admin.spareparts.index')
+        return redirect()->route('admin.spareparts.index')
             ->with('success', 'Sparepart berhasil dihapus!');
     }
 

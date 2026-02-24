@@ -26,4 +26,10 @@ class Sparepart extends Model
     {
         return $this->belongsTo(SparepartCategory::class, 'sparepart_category_id');
     }
+
+    // Relasi ke SparepartLog
+    public function logs()
+    {
+        return $this->hasMany(SparepartLog::class)->latest();
+    }
 }

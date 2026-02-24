@@ -70,6 +70,8 @@
                                 Rp {{ number_format($sparepart->price_per_unit, 0, ',', '.') }}
                             </td>
                             <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                <a href="{{ route('admin.spareparts.show', $sparepart->id) }}" class="text-blue-500 hover:text-blue-600 font-bold text-xs border border-blue-200 bg-blue-50 px-3 py-1 rounded transition">Detail</a>
+                                
                                 <a href="{{ route('admin.spareparts.edit', $sparepart->id) }}" class="text-yellow-500 hover:text-yellow-600 font-bold text-xs border border-yellow-200 bg-yellow-50 px-3 py-1 rounded transition">Edit</a>
 
                                 <button @click="showDeleteModal = true; deleteUrl = '{{ route('admin.spareparts.destroy', $sparepart->id) }}'" class="text-red-500 hover:text-red-600 font-bold text-xs border border-red-200 bg-red-50 px-3 py-1 rounded transition">Hapus</button>
